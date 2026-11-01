@@ -1,0 +1,38 @@
+[package]
+name = "bz"
+description = "Bogenzeit: time as position on the Sun's arc. The reference engine and the bz command"
+version = "0.1.0"
+edition = "2021"
+authors = ["David M. Anderson"]
+license = "MIT"
+repository = "https://github.com/excelano/bogenzeit"
+readme = "README.md"
+keywords = ["solar", "time", "sunrise", "sunset", "clock"]
+categories = ["command-line-utilities", "date-and-time"]
+# `bz` on crates.io is held by a placeholder; publishing waits for its removal.
+publish = false
+
+[lib]
+name = "bz"
+path = "src/lib.rs"
+
+[[bin]]
+name = "bz"
+path = "src/main.rs"
+
+[dependencies]
+
+[dev-dependencies]
+# Reads vectors/bz_vectors.json in the tests; the engine itself depends on nothing.
+serde_json = "1"
+
+[package.metadata.deb]
+maintainer = "David M. Anderson <david.anderson@excelano.com>"
+extended-description = """
+Bogenzeit reads time as position on the Sun's arc instead of as a count of
+hours: spans from solar noon or solar midnight, a hundred per half-arc, and
+kiloseconds as the fixed scale beside them. bz computes a reading for any UTC
+instant and place, offline, and prints a day's table of anchors, quarter
+boundaries, sunrise, sunset and twilights. The standard it implements is the
+Bogenzeit spec in the same repository."""
+section = "utils"
