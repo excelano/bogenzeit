@@ -253,7 +253,7 @@ CASES = [
     ("Berlin, 29 Feb 2028, 12:00 CET (leap day)", "2028-02-29T11:00:00Z", 52.52, 13.40),
     ("Tromsø, 21 Dec 2026, 12:00 CET (polar night, noon anchor)", "2026-12-21T11:00:00Z", 69.65, 18.96),
     ("Tromsø, 21 Dec 2026, 01:00 CET (polar night, midnight anchor)", "2026-12-21T00:00:00Z", 69.65, 18.96),
-    ("Longyearbyen, 20 Feb 2027, 12:00 CET (first day the Sun clears the horizon)", "2027-02-20T11:00:00Z", 78.22, 15.63),
+    ("Longyearbyen, 20 Feb 2027, 12:00 CET (three days after the first sunrise)", "2027-02-20T11:00:00Z", 78.22, 15.63),
 ]
 
 DURATIONS = [
