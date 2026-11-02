@@ -15,6 +15,7 @@ const HELP: &str = "\
 bz: Bogenzeit, time as position on the Sun's arc
 
 Usage:
+  bz [--lat LAT --lon LON | --place NAME] [--json]
   bz now [--lat LAT --lon LON | --place NAME] [--json]
   bz at <UTC> [--lat LAT --lon LON | --place NAME] [--json]
   bz day <DATE> [--lat LAT --lon LON | --place NAME] [--json]
@@ -24,10 +25,10 @@ UTC is an RFC 3339 instant such as 2026-11-01T17:08:00Z. DATE is a
 Bogenzeit date, YYYY-MM-DD: the civil date of that day's solar noon.
 LAT and LON are decimal degrees, north and east positive.
 
-Without coordinates, the place comes from ~/.config/bz/config (or
-$XDG_CONFIG_HOME/bz/config): one place per line as `name = lat, lon`,
-and `place = name` for the one used when --place is not given.
-`bz places` lists them.
+Bare bz is the reading for now. Without coordinates, the place comes
+from ~/.config/bz/config (or $XDG_CONFIG_HOME/bz/config): one place per
+line as `name = lat, lon`, and `place = name` for the one used when
+--place is not given. `bz places` lists them.
 
 Instants print truncated to the whole second, toward the past, like every
 Bogenzeit readout.
@@ -72,9 +73,9 @@ enum Where {
 fn main() -> ExitCode {
     quiet_on_closed_pipe();
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.is_empty() || args.iter().any(|a| a == "--help" || a == "-h") {
+    if args.iter().any(|a| a == "--help" || a == "-h") {
         print!("{HELP}");
-        return ExitCode::from(if args.is_empty() { 2 } else { 0 });
+        return ExitCode::SUCCESS;
     }
     if args.iter().any(|a| a == "--version" || a == "-V") {
         println!("bz {}", env!("CARGO_PKG_VERSION"));
@@ -128,9 +129,8 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
         i += 1;
     }
     let mut positional = positional.into_iter();
-    let verb = positional
-        .next()
-        .ok_or("a verb is needed: now, at, day or places; see bz --help")?;
+    // Bare `bz`, flags or not, is the reading for now.
+    let verb = positional.next().unwrap_or_else(|| "now".to_string());
     let operand = positional.next();
     if let Some(extra) = positional.next() {
         return Err(format!("unexpected argument `{extra}`; see bz --help"));

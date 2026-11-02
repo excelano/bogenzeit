@@ -44,5 +44,5 @@ per line and the default named:
     home = 29.76, -95.37
     camp = 36.45, -104.95
 
-Then `bz now` reads for home, `bz now --place camp` for the camp, and
+Then `bz` alone reads for home, `bz --place camp` for the camp, and
 `bz places` lists them. Coordinates on the command line still win.
