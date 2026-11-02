@@ -148,14 +148,38 @@ impl Places {
     }
 }
 
+/// Decimal degrees, signed or with a hemisphere letter before or after:
+/// `-95.47833`, `W095.47833` and `95.47833W` are the same longitude.
 pub fn degrees(text: &str, limit: f64) -> Result<f64, String> {
-    let value: f64 = text
+    let trimmed = text.trim();
+    let first = trimmed.chars().next().map(|c| c.to_ascii_uppercase());
+    let last = trimmed.chars().last().map(|c| c.to_ascii_uppercase());
+    let (number, sign) = match (first, last) {
+        (Some(c @ ('N' | 'S' | 'E' | 'W')), _) => (trimmed[1..].trim(), hemisphere(c)),
+        (_, Some(c @ ('N' | 'S' | 'E' | 'W'))) => {
+            (trimmed[..trimmed.len() - 1].trim(), hemisphere(c))
+        }
+        _ => (trimmed, 1.0),
+    };
+    let value: f64 = number
         .parse()
         .map_err(|_| format!("`{text}` is not a number of degrees"))?;
+    if sign < 0.0 && value < 0.0 {
+        return Err(format!("`{text}` has both a minus sign and a hemisphere"));
+    }
+    let value = value * sign;
     if !(-limit..=limit).contains(&value) {
         return Err(format!("{text} is outside -{limit} to {limit}"));
     }
     Ok(value)
+}
+
+fn hemisphere(letter: char) -> f64 {
+    if letter == 'S' || letter == 'W' {
+        -1.0
+    } else {
+        1.0
+    }
 }
 
 #[cfg(test)]
@@ -192,6 +216,17 @@ mod tests {
         assert!(p.forget("camp").is_err());
         let again = Places::parse(&p.render()).unwrap();
         assert_eq!(again.places.len(), 1);
+    }
+
+    #[test]
+    fn reads_hemisphere_letters() {
+        assert_eq!(degrees("N29.67230", 90.0).unwrap(), 29.6723);
+        assert_eq!(degrees("W095.47833", 180.0).unwrap(), -95.47833);
+        assert_eq!(degrees("95.47833W", 180.0).unwrap(), -95.47833);
+        assert_eq!(degrees("s 33.87", 90.0).unwrap(), -33.87);
+        assert_eq!(degrees("-95.47833", 180.0).unwrap(), -95.47833);
+        assert!(degrees("W-95", 180.0).is_err());
+        assert!(degrees("N", 90.0).is_err());
     }
 
     #[test]

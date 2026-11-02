@@ -26,7 +26,8 @@ Usage:
 
 UTC is an RFC 3339 instant such as 2026-11-01T17:08:00Z. DATE is a
 Bogenzeit date, YYYY-MM-DD: the civil date of that day's solar noon.
-LAT and LON are decimal degrees, north and east positive.
+LAT and LON are decimal degrees, north and east positive, or with a
+hemisphere letter: N29.67230 W095.47833.
 
 Bare bz is the reading for now. Without coordinates, the place comes
 from ~/.config/bz/config (or $XDG_CONFIG_HOME/bz/config): one place per

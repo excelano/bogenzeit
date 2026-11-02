@@ -40,7 +40,7 @@ sunrise, sunset and twilights in time order. `--json` gives either as an object;
 Coordinates can live in a config file instead, written by `bz place`:
 
     bz place home 29.76 -95.37
-    bz place camp 36.45 -104.95
+    bz place camp N36.45 W104.95
 
 The first place written is the default, `bz place camp` makes another the
 default, and `bz place --forget camp` removes one. Then `bz` alone reads for the
