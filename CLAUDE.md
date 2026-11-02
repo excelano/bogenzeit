@@ -3,8 +3,8 @@
 Bogenzeit is a time standard. `docs/bogenzeit-spec.md` is normative and no definition in it changes
 without David. This crate, `bz`, is its reference-grade engine and command; `reference/bz_reference.py`
 defines the algorithm and is the only writer of `vectors/bz_vectors.json`, which every port must pass.
-The Apple apps are in excelano/tagbogen and carry their own copy of the vectors; a regenerated file goes
-there too. HANDOFF.md is the brief the work started from.
+The Swift engine for the Apple apps is excelano/bogenzeit-swift, which carries its own copy of the
+vectors; a regenerated file goes there too. HANDOFF.md is the brief the work started from.
 
 ## Commands
 
