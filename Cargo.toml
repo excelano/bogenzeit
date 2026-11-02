@@ -9,8 +9,6 @@ repository = "https://github.com/excelano/bogenzeit"
 readme = "README.md"
 keywords = ["solar", "time", "sunrise", "sunset", "clock"]
 categories = ["command-line-utilities", "date-and-time"]
-# `bz` on crates.io is held by a placeholder; publishing waits for its removal.
-publish = false
 
 [lib]
 name = "bz"

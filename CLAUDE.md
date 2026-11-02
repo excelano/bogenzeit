@@ -16,8 +16,8 @@ vectors; a regenerated file goes there too. HANDOFF.md is the brief the work sta
     python3 reference/bz_reference.py --vectors > vectors/bz_vectors.json   # after adding a case
 
 The build directory is the shared one in `~/.cargo/config.toml`, not `target/`. Releases: the apps in
-excelano/shipping, run from this directory; the crate is not published while `bz` on crates.io is held
-by a placeholder.
+excelano/shipping, run from this directory: `build-release`, then `ship-crates` (crates.io) and
+`apt-ship` (the deb).
 
 ## Rules
 

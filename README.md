@@ -26,7 +26,7 @@ https://github.com/excelano/tagbogen.
 
 ## Install and run
 
-    cargo install --path .
+    cargo install bz
 
     bz now --lat 29.76 --lon -95.37
     bz at 2026-11-01T17:08:00Z --lat 29.76 --lon -95.37
