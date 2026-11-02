@@ -29,13 +29,18 @@ Bogenzeit date, YYYY-MM-DD: the civil date of that day's solar noon.
 LAT and LON are decimal degrees, north and east positive, or with a
 hemisphere letter: N29.67230 W095.47833.
 
-Bare bz is the reading for now. Without coordinates, the place comes
-from ~/.config/bz/config (or $XDG_CONFIG_HOME/bz/config): one place per
-line as `name = lat, lon`, and `place = name` for the one used when
---place is not given. `bz place` writes that file: with coordinates it
-adds or replaces a place, and the first place written becomes the
-default; with a name alone it makes that place the default; with
---forget it removes one. `bz places` lists them.
+Bare bz is the reading for now at the default place. Places are kept in
+~/.config/bz/config (or $XDG_CONFIG_HOME/bz/config), which bz place writes:
+
+  bz place home 29.76 -95.37       add or replace home; the first place
+                                   written becomes the default
+  bz place camp N36.45 W104.95     the same with hemisphere letters
+  bz place camp                    make camp the default
+  bz place --forget camp           remove camp
+  bz places                        list the places and the default
+
+The file is one place per line as `name = lat, lon`, with `place = name`
+naming the default, and can be edited by hand.
 
 Instants print truncated to the whole second, toward the past, like every
 Bogenzeit readout.
