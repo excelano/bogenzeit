@@ -158,7 +158,21 @@ def bogenzeit(t: datetime, lat: float, lon: float) -> dict:
     out["display_offset_ks"] = round(floor_div(off, 10) / 1000, 2)
     out["quarter"] = q
     out["written"] = written_form(out["display_span"], out["display_offset_ks"], anchor)
+    out["written_span"] = span_form(out["display_span"], anchor)
     return out
+
+
+def span_form(span: int, anchor: str) -> str:
+    """Span form (BZ spec §3.2, §3.7): 100 before its anchor is the horizon glyph,
+    △ after sunrise, ▽ after sunset; 0 is the anchor alone."""
+    g = "☉" if anchor == "noon" else "○"
+    if span == -100:
+        return "△" if anchor == "noon" else "▽"
+    if span < 0:
+        return f"{-span} {g}"
+    if span == 0:
+        return g
+    return f"{g} {span}"
 
 
 def written_form(span: int, ks: float, anchor: str) -> str:

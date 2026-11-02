@@ -42,7 +42,8 @@ fn sunset_shows_only_at_exact_sunset_and_switches_anchor() {
     assert_eq!(before.span_form().unwrap(), "☉ 99");
     assert_eq!(before.quarter(), Some(Quarter::Foreset));
     let at = houston(sunset);
-    assert_eq!(at.span_form().unwrap(), "100 ○");
+    assert_eq!(at.span_form().unwrap(), "▽");
+    assert_eq!(at.combined_form().unwrap(), "100 [23.37 ks] ○");
     assert_eq!(at.quarter(), Some(Quarter::Afterset));
     assert_eq!(at.day.date, before.day.date);
 }
@@ -54,7 +55,8 @@ fn sunrise_switches_anchor_back() {
     assert_eq!(before.span_form().unwrap(), "○ 99");
     assert_eq!(before.quarter(), Some(Quarter::Forerise));
     let at = houston(sunrise);
-    assert_eq!(at.span_form().unwrap(), "100 ☉");
+    assert_eq!(at.span_form().unwrap(), "△");
+    assert_eq!(at.combined_form().unwrap(), "100 [19.84 ks] ☉");
     assert_eq!(at.quarter(), Some(Quarter::Afterrise));
 }
 

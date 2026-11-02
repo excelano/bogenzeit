@@ -452,6 +452,10 @@ fn reading_json(r: &Reading) -> String {
         r.combined_form().map_or("null".into(), |w| quoted(&w)),
     ));
     fields.push((
+        "written_span",
+        r.span_form().map_or("null".into(), |w| quoted(&w)),
+    ));
+    fields.push((
         "night_phase",
         r.night_phase.map_or("null".into(), |p| quoted(p.name())),
     ));

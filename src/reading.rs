@@ -30,6 +30,15 @@ impl Anchor {
         }
     }
 
+    /// The horizon glyph written for the 100-span position before this
+    /// anchor (§3.2): △ after sunrise, ▽ after sunset.
+    pub fn horizon_glyph(self) -> char {
+        match self {
+            Anchor::Noon => '△',
+            Anchor::Midnight => '▽',
+        }
+    }
+
     pub fn name(self) -> &'static str {
         match self {
             Anchor::Noon => "noon",
@@ -363,10 +372,12 @@ impl Reading {
         self.display_offset_steps() as f64 / 100.0
     }
 
-    /// `59 ☉`, `☉`, `☉ 3`; None on a polar day.
+    /// `59 ☉`, `☉`, `☉ 3`, and `△` or `▽` for the first span after sunrise
+    /// or sunset (§3.2); None on a polar day.
     pub fn span_form(&self) -> Option<String> {
         let g = self.anchor.glyph();
         self.display_span().map(|span| match span {
+            -100 => self.anchor.horizon_glyph().to_string(),
             s if s < 0 => format!("{}{SEP}{g}", -s),
             0 => g.to_string(),
             s => format!("{g}{SEP}{s}"),

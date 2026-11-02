@@ -88,6 +88,11 @@ fn every_vector_passes() {
         );
         assert_eq!(r.quarter().unwrap().name(), e["quarter"], "{name}: quarter");
         assert_eq!(r.combined_form().unwrap(), e["written"], "{name}: written");
+        assert_eq!(
+            r.span_form().unwrap(),
+            e["written_span"],
+            "{name}: written_span"
+        );
     }
 }
 
