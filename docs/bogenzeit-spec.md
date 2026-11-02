@@ -1,10 +1,10 @@
-# Bogenzeit — Spec (draft 0.12)
+# Bogenzeit — Spec (draft 0.13)
 
 Bogenzeit is a personal way to see and think about time, centered on the local Sun.
 It connects to UTC and civil time zones, but the primary readout follows
 solar noon, sunrise, and sunset at the observer's location.
 
-Status: draft 0.12. First lives as this file; the **Tagbogen** watch face comes next.
+Status: draft 0.13. First lives as this file; the **Tagbogen** watch face comes next.
 
 **Bogenzeit** ("arc time", abbreviated **BZ**) is the time standard: time read as position on the Sun's arc, not as a count of hours. **Tagbogen** is the watch face that displays it.
 
@@ -66,14 +66,16 @@ Naming of coined terms is still open.
 
 ## 3. Notation and readout
 
-### 3.1 Anchor glyphs
+### 3.1 Glyphs
 
-| Anchor | Glyph | Code point | Meaning |
+| Event | Glyph | Code point | Meaning |
 |---|---|---|---|
 | Solar noon | ☉ | U+2609 SUN | The astronomical symbol for the Sun: the disc with its center. |
 | Solar midnight | ○ | U+25CB WHITE CIRCLE | The same disc with the center gone: the Sun on the far side. |
+| Sunrise | △ | U+25B3 WHITE UP-POINTING TRIANGLE | The Sun coming up over the horizon. |
+| Sunset | ▽ | U+25BD WHITE DOWN-POINTING TRIANGLE | The Sun going down below it. |
 
-Both are plain text symbols, not emoji.
+All four are plain text symbols, not emoji. ☉ and ○ are the **anchors**: spans and offsets are counted from them. △ and ▽ are **horizon glyphs**: nothing is counted from them, and they stand in for the 100-span position (§3.2).
 
 **Matching rule:** ☉ and ○ must always render at the same size, weight, and baseline position. They come from different Unicode blocks (Miscellaneous Symbols vs. Geometric Shapes), and no font tested draws them identically:
 
@@ -85,10 +87,10 @@ Both are plain text symbols, not emoji.
 | DejaVu Sans Mono | 0.559 em | 0.596 em | ○ 7% larger |
 
 Therefore:
-- **Watch face:** draw both anchors as vector shapes from one shared definition (same outer radius, same stroke). ☉ = that circle plus a center dot; ○ = that circle alone. Do not render them from a font.
-- **Bundled font (if text rendering is needed):** subset a font and redraw ○ as ☉'s outline with the dot removed.
+- **Watch face:** draw all four glyphs as vector shapes from one shared definition (same outer radius, same stroke). ☉ = that circle plus a center dot; ○ = that circle alone; △ and ▽ = a triangle filling the circle's square (height and width equal to its diameter, apex up or down), same stroke, round joins. Do not render them from a font.
+- **Bundled font (if text rendering is needed):** subset a font, redraw ○ as ☉'s outline with the dot removed, and draw △ and ▽ to the same box and stroke.
 - **Plain text (this file, notes):** exact matching is not guaranteed; accepted.
-- Both anchors should be visibly larger than the digits, so ○ is not read as `o`, `0`, or `°`.
+- The glyphs should be visibly larger than the digits, so ○ is not read as `o`, `0`, or `°`.
 
 ### 3.2 Positional notation (display)
 
@@ -100,8 +102,10 @@ The glyph is a fixed point on a timeline read left to right. **Position replaces
 | `☉` | exactly solar noon |
 | `☉ 5.50` | 5.50 ks *after* solar noon |
 | `8.00 ○` | 8.00 ks before solar midnight |
-| `☉ 100` / `100 ○` | sunset (end of daylight / start of night — the same instant) |
+| `△` | sunrise |
+| `▽` | sunset |
 
+- **Horizon glyphs replace 100.** A span position of 100 is written with the horizon glyph instead: `100 ☉` is `△`, and `100 ○` is `▽`. As with `☉` alone at solar noon, the glyph alone shows from the event until the next display step (§5.2), so a span position never has three digits. Offsets keep their anchor: sunrise in the offset form is still `19.83 ks ☉`.
 - No `+` or `−` characters in display.
 - A thin space (U+2009) separates number and glyph.
 - The same grammar is used for spans and for ks offsets. Units distinguish them: spans are bare numbers, offsets carry `ks`.
@@ -110,15 +114,17 @@ The glyph is a fixed point on a timeline read left to right. **Position replaces
 
 ### 3.3 Tagbogen (sunrise → sunset)
 
-- **Primary (large): span position**, e.g. `59 ☉`. Sunrise is `100 ☉`, sunset is `☉ 100`.
-- **Secondary (small): noon offset**, e.g. `11.77 ks ☉`.
+- **Span position**, e.g. `59 ☉`. Sunrise is `△`, sunset is `▽`.
+- **Noon offset**, e.g. `11.77 ks ☉`.
+- A readout shows either reading alone, or both in the combined form (§3.7) with the span first.
 - Context: half-daylight length, e.g. `½ day 19.8 ks` (so a span is 198 s today).
 - Civil time shown small, for coordination only.
 
 ### 3.4 Nachtbogen (sunset → sunrise)
 
-- **Primary: span position** relative to ○, e.g. `48 ○`. Sunset is `100 ○`, sunrise is `○ 100`.
-- **Secondary: midnight offset**, e.g. `11.11 ks ○`.
+- **Span position** relative to ○, e.g. `48 ○`. Sunset is `▽`, sunrise is `△`.
+- **Midnight offset**, e.g. `11.11 ks ○`.
+- As by day, either reading alone or both combined.
 - At sunset the anchor switches from ☉ to ○; at sunrise it switches back. Each half of the day is read against its own center.
 - Twilight phases shown by name (civil / nautical / astronomical) when active.
 
@@ -134,18 +140,18 @@ The rule matches positional notation: *Fore-* = number left of the glyph, *After
 
 | Arc | Spans | Quarter | Nearest event | Today, Houston (CST, approx.) |
 |---|---|---|---|---|
-| Tagbogen | `100 ☉` → `50 ☉` | **Afterrise** | after sunrise | 06:34 → 09:20 |
+| Tagbogen | `△` → `50 ☉` | **Afterrise** | after sunrise | 06:34 → 09:20 |
 | | `50 ☉` → `☉` | **Forenoon** | before solar noon | 09:20 → 12:05 |
 | | `☉` → `☉ 50` | **Afternoon** | after solar noon | 12:05 → 14:50 |
-| | `☉ 50` → `☉ 100` | **Foreset** | before sunset | 14:50 → 17:36 |
-| Nachtbogen | `100 ○` → `50 ○` | **Afterset** | after sunset | 17:36 → 20:50 |
+| | `☉ 50` → `▽` | **Foreset** | before sunset | 14:50 → 17:36 |
+| Nachtbogen | `▽` → `50 ○` | **Afterset** | after sunset | 17:36 → 20:50 |
 | | `50 ○` → `○` | **Foremid** | before solar midnight | 20:50 → 00:05 |
 | | `○` → `○ 50` | **Aftermid** | after solar midnight | 00:05 → 03:20 |
-| | `○ 50` → `○ 100` | **Forerise** | before sunrise | 03:20 → 06:35 |
+| | `○ 50` → `△` | **Forerise** | before sunrise | 03:20 → 06:35 |
 
 **Quarter boundaries** have no names of their own; they are written in notation: `50 ☉`, `☉ 50`, `50 ○`, `○ 50`.
 
-**Roots:** *rise* = sunrise, *noon* = solar noon (☉), *set* = sunset, *mid* = solar midnight (○). Full forms Foremidnight / Aftermidnight may be used where space allows.
+**Roots:** *rise* = sunrise (△), *noon* = solar noon (☉), *set* = sunset (▽), *mid* = solar midnight (○). Full forms Foremidnight / Aftermidnight may be used where space allows.
 
 **Properties**
 - Quarter length = 50 spans of its arc, so it changes with season and latitude. Today a Tagbogen quarter is about 9.9 ks; in Houston it ranges from roughly 9 ks (December) to 12–13 ks (June). Nachtbogen quarters do the opposite.
@@ -172,10 +178,11 @@ Spans and ks do not nest the way hours, minutes, and seconds do: a span is not a
 Rules:
 - The glyph appears once; all numbers sit on the side the positional rule (§3.2) puts them.
 - Combined form: span first, then the offset in square brackets. Brackets mean "the same moment, as a fixed offset".
-- Spans are bare numbers; offsets always carry `ks`.
+- Spans are bare numbers; offsets always carry `ks`. Once spans carry decimals (§5.2), the unit is the only thing telling `59.3 ☉` from `11.77 ks ☉`, so it is never dropped.
+- The combined form keeps the number where the span form shows a glyph alone, because the offset in brackets needs the anchor: `100 [19.84 ks] ☉` just after sunrise, as `☉ 0 [0.03 ks]` just after solar noon.
 - Same forms at night with ○: `40 [8.00 ks] ○`.
 
-**Precision:** ks with three decimals is exact to the second (`11.766 ks ☉` = 11,766 s before solar noon). This is the true counterpart of `hh:mm:ss`: two decimals for display, three for exact.
+**Precision:** ks with three decimals is exact to the second (`11.766 ks ☉` = 11,766 s before solar noon). This is the true counterpart of `hh:mm:ss`. The written forms use whole spans and two decimals of ks; a display chooses its own precision (§5.2).
 
 **Separators:**
 - `[ ]` — parallel reading (offset alongside span).
@@ -212,18 +219,21 @@ Days, weeks, months, and years are unchanged Gregorian units. Only the **switcho
 
 ### 5.2 Display resolution and rounding
 
-| Readout | Resolution | Typical size |
+| Readout | Resolution | Step |
 |---|---|---|
-| Span | whole number | ~200 s (varies with season and arc) |
-| Offset | ks, two decimals | 10 s |
+| Span | whole, one decimal, or two decimals | ~200 s, ~20 s, ~2 s (varies with season and arc) |
+| Offset | ks, one, two or three decimals | 100 s, 10 s, 1 s |
 | Second | whole number | 1 s (data and precise work) |
+
+The steps pair up: whole spans with one decimal of ks, one decimal of spans with two of ks, two with three. A display may offer the choice as one precision setting. The written forms (§3.7) use whole spans and two decimals of ks.
 
 **Rounding rule: round down the signed value** (floor toward the past). The display always shows the last boundary that has been crossed, never the next one, as a clock does with hours and minutes.
 
-- After an anchor: `☉ 3.7` spans → shows `☉ 3`.
-- Before an anchor: −59.3 spans (59.3 before ☉) → floor is −60 → shows `60 ☉`. It changes to `59 ☉` exactly when 59 spans remain.
-- So `☉` appears only from exact solar noon, and `☉ 100` (sunset) only at exact sunset. No event is shown early.
-- The same rule applies to ks offsets (floor of signed seconds ÷ 10). A readout that cannot refresh every 10 s, such as a watch-face complication, may show one decimal, floored the same way.
+- After an anchor: `☉ 3.7` spans → shows `☉ 3`, or `☉ 3.7` at one decimal.
+- Before an anchor: −59.3 spans (59.3 before ☉) → floor is −60 → shows `60 ☉`. It changes to `59 ☉` exactly when 59 spans remain. At one decimal, −59.31 → −59.4 → `59.4 ☉`.
+- So `☉` appears only from exact solar noon, and `▽` only from exact sunset. No event is shown early. A floored position of −100 is the first step after a horizon event, and shows its glyph (§3.2).
+- The same rule applies to ks offsets (floor of signed seconds ÷ the step).
+- A readout shows no finer step than it refreshes: a watch-face complication or a dimmed always-on screen falls back to whole spans or one decimal of ks.
 
 **No intermediate unit.** Quarters (~10 ks) → spans (~200 s) → seconds is a usable ladder, comparable to hours → minutes → seconds. ks is a parallel fixed scale, not a level in that ladder.
 
@@ -303,10 +313,10 @@ Location: 29.76° N, 95.37° W. DST ended at 02:00 this morning; now CST (UTC−
 
 | Event | Civil (CST) | Offset | Span |
 |---|---|---|---|
-| Sunrise | 06:34 | 19.83 ks ☉ | 100 ☉ |
+| Sunrise | 06:34 | 19.83 ks ☉ | △ |
 | 08:49 (example) | 08:49 | 11.77 ks ☉ | 59 ☉ |
 | Solar noon | 12:05 | ☉ | ☉ |
-| Sunset | 17:36 | ☉ 19.83 ks | ☉ 100 = 100 ○ |
+| Sunset | 17:36 | ☉ 19.83 ks | ▽ |
 | 21:00 (example) | 21:00 | 11.11 ks ○ | 48 ○ |
 | Solar midnight | ~00:05 (2 Nov) | ○ | ○ |
 
@@ -330,15 +340,15 @@ Yesterday under CDT, solar noon was about 13:05 civil. The civil clock jumped an
 
 **Decided**
 
-- ~~Daylight secondary readout~~ — decided: spans primary, ks noon offset secondary.
-- ~~Night secondary readout~~ — decided: ks from solar midnight.
+- ~~Readout~~ — decided: span form, offset form, or both combined with the span first; a display may show one alone (§3.3). The night offset is ks from solar midnight.
+- ~~Sunrise and sunset glyphs~~ — decided: △ and ▽, standing in for the 100-span position; nothing is counted from them (§3.1, §3.2).
 - ~~Anchor glyphs~~ — decided: ☉ noon, ○ midnight.
 - ~~Names~~ — decided: Bogenzeit (standard), Tagbogen (watch face).
 - ~~Quarters~~ — decided: four per arc, named Fore-/After- + nearest event (§3.6).
 - ~~Names for quarter boundaries~~ — decided: none. The 50-span points are written in notation only (`50 ☉`, `☉ 50`, `50 ○`, `○ 50`). Named transitions are limited to sunrise, solar noon, sunset, solar midnight.
 - ~~Date switchover~~ — decided: at solar midnight (§5.1).
-- ~~Rounding~~ — decided: whole spans, floor of signed value (§5.2).
-- ~~Offset resolution~~ — decided: two decimals of ks (10 s) for display; one is allowed where a readout cannot refresh that often (§5.2).
+- ~~Rounding~~ — decided: floor of the signed value at the precision shown (§5.2).
+- ~~Display precision~~ — decided: spans whole or to two decimals, ks to one, two or three; the written forms use whole spans and two decimals of ks (§5.2).
 - ~~Full timestamp~~ — decided: Gregorian date + coordinates + position (§5.3).
 - ~~Elevation/terrain~~ — decided: ignored (§5.4).
 - ~~Written forms~~ — decided: span, offset, and combined `59 [11.8 ks] ☉`; `|` between fields (§3.7).
