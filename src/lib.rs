@@ -14,5 +14,7 @@ pub mod reading;
 pub mod solar;
 
 pub use calendar::{Date, Instant};
-pub use reading::{bz_date, Anchor, NightPhase, Polar, Position, Quarter, Reading, SolarDay};
+pub use reading::{
+    bz_date, Anchor, NightPhase, Polar, Position, Quarter, Reading, SolarDay, SolarDuration,
+};
 pub use solar::HalfArc;

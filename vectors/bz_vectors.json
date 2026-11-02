@@ -577,5 +577,124 @@
         "written_span": "11 ☉"
       }
     }
+  ],
+  "durations": [
+    {
+      "name": "Houston, 1 Nov 2026, 11:08 CST to solar noon",
+      "from": "2026-11-01T17:08:00Z",
+      "to": "2026-11-01T18:05:06Z",
+      "lat": 29.76,
+      "lon": -95.37,
+      "expected": {
+        "seconds": 3426.0,
+        "display_ks": 3.4,
+        "spans": 17.2744,
+        "display_spans": 17
+      }
+    },
+    {
+      "name": "Houston, 1 Nov 2026, solar noon back to 11:08 CST (a countdown)",
+      "from": "2026-11-01T18:05:06Z",
+      "to": "2026-11-01T17:08:00Z",
+      "lat": 29.76,
+      "lon": -95.37,
+      "expected": {
+        "seconds": -3426.0,
+        "display_ks": -3.5,
+        "spans": -17.2744,
+        "display_spans": -18
+      }
+    },
+    {
+      "name": "Houston, 1 Nov 2026, 16:00 to 19:00 CST, across sunset",
+      "from": "2026-11-01T22:00:00Z",
+      "to": "2026-11-02T01:00:00Z",
+      "lat": 29.76,
+      "lon": -95.37,
+      "expected": {
+        "seconds": 10800.0,
+        "display_ks": 10.8,
+        "spans": 50.5952,
+        "display_spans": 50
+      }
+    },
+    {
+      "name": "Houston, 1 Nov 2026, 21:00 CST to 3:00 CST, across ○ and the BZ date",
+      "from": "2026-11-02T03:00:00Z",
+      "to": "2026-11-02T09:00:00Z",
+      "lat": 29.76,
+      "lon": -95.37,
+      "expected": {
+        "seconds": 21600.0,
+        "display_ks": 21.6,
+        "spans": 92.3465,
+        "display_spans": 92
+      }
+    },
+    {
+      "name": "Houston, 2 Nov 2026, 3:00 to 9:00 CST, across sunrise",
+      "from": "2026-11-02T09:00:00Z",
+      "to": "2026-11-02T15:00:00Z",
+      "lat": 29.76,
+      "lon": -95.37,
+      "expected": {
+        "seconds": 21600.0,
+        "display_ks": 21.6,
+        "spans": 99.0494,
+        "display_spans": 99
+      }
+    },
+    {
+      "name": "Houston, noon 1 Nov to noon 3 Nov 2026, two days",
+      "from": "2026-11-01T18:00:00Z",
+      "to": "2026-11-03T18:00:00Z",
+      "lat": 29.76,
+      "lon": -95.37,
+      "expected": {
+        "seconds": 172800.0,
+        "display_ks": 172.8,
+        "spans": 799.9863,
+        "display_spans": 799
+      }
+    },
+    {
+      "name": "Berlin, 21 Dec 2026, 8:00 to 20:00 CET, winter",
+      "from": "2026-12-21T07:00:00Z",
+      "to": "2026-12-21T19:00:00Z",
+      "lat": 52.52,
+      "lon": 13.4,
+      "expected": {
+        "seconds": 43200.0,
+        "display_ks": 43.2,
+        "spans": 253.1626,
+        "display_spans": 253
+      }
+    },
+    {
+      "name": "Tromsø, 21 Jun 2027, polar day: no spans",
+      "from": "2027-06-21T10:00:00Z",
+      "to": "2027-06-21T14:00:00Z",
+      "lat": 69.65,
+      "lon": 18.96,
+      "expected": {
+        "seconds": 14400.0,
+        "display_ks": 14.4,
+        "spans": null,
+        "display_spans": null
+      }
+    },
+    {
+      "name": "Longyearbyen, 16 to 17 Feb 2027, from polar night into the first sunrise: no spans",
+      "from": "2027-02-16T11:00:00Z",
+      "to": "2027-02-17T11:00:00Z",
+      "lat": 78.22,
+      "lon": 15.63,
+      "expected": {
+        "seconds": 86400.0,
+        "display_ks": 86.4,
+        "spans": null,
+        "display_spans": null
+      }
+    }
   ]
 }

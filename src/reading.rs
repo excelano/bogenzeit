@@ -248,6 +248,47 @@ pub fn bz_date(t: Instant, lon: f64) -> Date {
     unreachable!("every instant falls in one of three neighbouring solar days")
 }
 
+/// The time between two instants at one place (§3.8), signed: positive when
+/// the second is later.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SolarDuration {
+    pub seconds: f64,
+    /// Span steps the clock passes; None when a day between has no sunrise
+    /// or sunset.
+    pub spans: Option<f64>,
+}
+
+impl SolarDuration {
+    pub fn between(from: Instant, to: Instant, lat: f64, lon: f64) -> SolarDuration {
+        let (a, b) = (Reading::at(from, lat, lon), Reading::at(to, lat, lon));
+        let days = b.day.date.days_since_epoch() - a.day.date.days_since_epoch();
+        let first = a.day.date.min(b.day.date);
+        let crosses_polar = (0..=days.abs()).any(|i| {
+            SolarDay::compute(first.plus_days(i), lat, lon)
+                .polar()
+                .is_some()
+        });
+        let spans = match (a.place_in_day(), b.place_in_day()) {
+            (Some(pa), Some(pb)) if !crosses_polar => Some(pb - pa + 400.0 * days as f64),
+            _ => None,
+        };
+        SolarDuration {
+            seconds: to - from,
+            spans,
+        }
+    }
+
+    /// Whole spans, floored toward the past (§5.2).
+    pub fn display_spans(&self) -> Option<i64> {
+        self.spans.map(|s| s.floor() as i64)
+    }
+
+    /// Tenths of a kilosecond, floored toward the past (§5.2).
+    pub fn display_ks_steps(&self) -> i64 {
+        (self.seconds / 100.0).floor() as i64
+    }
+}
+
 /// Where the instant sits on its arc, or why it has no arc position.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Position {
@@ -355,6 +396,16 @@ impl Reading {
 
     pub fn polar(&self) -> Option<Polar> {
         self.day.polar()
+    }
+
+    /// Spans from the starting ○ of the Bogenzeit day, 0 to 400 (§3.8);
+    /// None on a polar day.
+    pub fn place_in_day(&self) -> Option<f64> {
+        self.span().map(|span| match self.anchor {
+            Anchor::Noon => 200.0 + span,
+            Anchor::Midnight if span >= 0.0 => span,
+            Anchor::Midnight => 400.0 + span,
+        })
     }
 
     /// Whole spans, floored toward the past (§5.2).

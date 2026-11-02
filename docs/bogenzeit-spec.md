@@ -172,7 +172,7 @@ Spans and ks do not nest the way hours, minutes, and seconds do: a span is not a
 | Form | Before ☉ | After ☉ | Use |
 |---|---|---|---|
 | **Span** | `59 ☉` | `☉ 3` | Everyday, glanceable |
-| **Offset** | `11.77 ks ☉` | `☉ 0.70 ks` | Fixed length; comparison and durations |
+| **Offset** | `11.77 ks ☉` | `☉ 0.70 ks` | Fixed length; comparison and durations (§3.8) |
 | **Combined** | `59 [11.77 ks] ☉` | `☉ 3 [0.70 ks]` | Notes, logs, full readout |
 
 Rules:
@@ -189,6 +189,25 @@ Rules:
 - `|` — between fields of a full timestamp or readout: `2026-11-01 | 29.76, −95.37 | 59 [11.77 ks] ☉`; `Forenoon | 21 ☉`.
 - Not used: `·` (confusable with `.`), `~` (reads as "approximately"), `/` (reads as a ratio), `,` (decimal mark in German).
 - Markdown note: in Markdown files, a bracketed reading directly followed by `(` would form a link; keep a space or other text after `]`.
+
+### 3.8 Durations
+
+A duration in ks is the difference in seconds ÷ 1000, and has a fixed length. A duration in spans counts the span steps the clock passes between two moments, and does not: a span after sunset is longer or shorter than one before it, so spans say how far the clock moves and ks say how much time passes.
+
+A Bogenzeit day (§5.1) holds 400 spans: 100 from the starting ○ to sunrise, 200 across the Tagbogen, 100 from sunset to the ending ○. A moment's place in its day is counted from the starting ○:
+
+| Arc | Span position | Place in the day |
+|---|---|---|
+| Nachtbogen, after the starting ○ | `○ s` | `s` |
+| Tagbogen | `s ☉` or `☉ s` (signed `s`) | `200 + s` |
+| Nachtbogen, before the ending ○ | `s ○` (signed `s`, negative) | `400 + s` |
+
+The spans between two moments are the difference of their places, plus 400 for each day boundary between them. The count is undefined when any Bogenzeit day from the first moment's to the second's has no sunrise or sunset (§3.5); a duration across a polar day is given in ks.
+
+Rules:
+- Written with its unit and no glyph: `23 spans`, `1 span`, `4.9 ks`. A relative readout says the direction in words: `in 23 spans`, `23 spans ago`.
+- Rounding follows §5.2, with the duration signed from the reader's moment, negative ahead. A countdown shows `in 24 spans` until 23 remain and never shows `in 0 spans`; an elapsed time shows `23 spans ago` once 23 whole spans have passed.
+- Data form: signed seconds (§4). A span count is derived from the two moments and the place.
 
 ---
 

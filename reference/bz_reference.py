@@ -101,55 +101,72 @@ def floor_div(x: float, step: float) -> float:
     return math.floor(x / step) * step
 
 
-def bogenzeit(t: datetime, lat: float, lon: float) -> dict:
+def position(t: datetime, lat: float, lon: float) -> dict:
+    """Unrounded position of an instant on its arc; span is None on a polar day."""
     d = bz_date(t, lon)
     today = day_events(d, lat, lon)
     noon = today["noon"]
     mid_before = solar_midnight(d - timedelta(days=1), lon)
     mid_after = solar_midnight(d, lon)
-
-    out = {"bz_date": d.isoformat(), "solar_noon_utc": noon.isoformat(),
-           "solar_midnight_start_utc": mid_before.isoformat(),
-           "solar_midnight_end_utc": mid_after.isoformat()}
+    p = {"date": d, "today": today, "mid_before": mid_before, "mid_after": mid_after}
 
     h = today["half_day_s"]
     if not isinstance(h, float):
-        out["polar"] = h
-        out["anchor"] = "noon" if abs((t - noon).total_seconds()) <= abs((t - mid_after).total_seconds()) and abs((t - noon).total_seconds()) <= abs((t - mid_before).total_seconds()) else "midnight"
-        anchor_t = noon if out["anchor"] == "noon" else (mid_before if t < noon else mid_after)
-        off = (t - anchor_t).total_seconds()
-        out["offset_s"] = round(off, 3)
-        out["display_offset_ks"] = round(floor_div(off, 10) / 1000, 2)
+        near_noon = abs((t - noon).total_seconds()) <= abs((t - mid_after).total_seconds()) and abs((t - noon).total_seconds()) <= abs((t - mid_before).total_seconds())
+        p["anchor"] = "noon" if near_noon else "midnight"
+        anchor_t = noon if near_noon else (mid_before if t < noon else mid_after)
+        p["offset"] = (t - anchor_t).total_seconds()
+        p["span"] = None
+        return p
+
+    sunrise, sunset = today["sunrise"], today["sunset"]
+    if sunrise <= t < sunset:                       # Tagbogen
+        p["anchor"] = "noon"
+        p["offset"] = (t - noon).total_seconds()
+        p["span"] = 100 * p["offset"] / h
+        return p
+
+    p["anchor"] = "midnight"                        # Nachtbogen
+    if t >= sunset:                                 # evening side: ○ ahead
+        mid = mid_after
+        nxt = day_events(d + timedelta(days=1), lat, lon)
+        half_night = (mid - sunset).total_seconds() if t < mid else (nxt["sunrise"] - mid).total_seconds()
+    else:                                           # morning side: ○ behind
+        mid = mid_before
+        prev = day_events(d - timedelta(days=1), lat, lon)
+        half_night = (sunrise - mid).total_seconds() if t >= mid else (mid - prev["sunset"]).total_seconds()
+    p["offset"] = (t - mid).total_seconds()
+    p["span"] = 100 * p["offset"] / half_night
+    p["half_night"] = half_night
+    return p
+
+
+def bogenzeit(t: datetime, lat: float, lon: float) -> dict:
+    p = position(t, lat, lon)
+    d, today = p["date"], p["today"]
+    out = {"bz_date": d.isoformat(), "solar_noon_utc": today["noon"].isoformat(),
+           "solar_midnight_start_utc": p["mid_before"].isoformat(),
+           "solar_midnight_end_utc": p["mid_after"].isoformat()}
+
+    if p["span"] is None:
+        out["polar"] = today["half_day_s"]
+        out["anchor"] = p["anchor"]
+        out["offset_s"] = round(p["offset"], 3)
+        out["display_offset_ks"] = round(floor_div(p["offset"], 10) / 1000, 2)
         out["span"] = None
         out["display_span"] = None
         out["quarter"] = None
         return out
 
-    sunrise, sunset = today["sunrise"], today["sunset"]
-    out["sunrise_utc"] = sunrise.isoformat()
-    out["sunset_utc"] = sunset.isoformat()
-    out["tagbogen_s"] = round(2 * h, 3)
+    out["sunrise_utc"] = today["sunrise"].isoformat()
+    out["sunset_utc"] = today["sunset"].isoformat()
+    out["tagbogen_s"] = round(2 * today["half_day_s"], 3)
 
-    if sunrise <= t < sunset:                       # Tagbogen
-        anchor = "noon"
-        off = (t - noon).total_seconds()
-        span = 100 * off / h
-        q = QUARTERS_DAY[min(3, int((span + 100) // 50))]
-    else:                                           # Nachtbogen
-        anchor = "midnight"
-        if t >= sunset:                             # evening side: ○ ahead
-            mid = mid_after
-            next_d = d + timedelta(days=1)
-            nxt = day_events(next_d, lat, lon)
-            half_night = (mid - sunset).total_seconds() if t < mid else (nxt["sunrise"] - mid).total_seconds()
-        else:                                       # morning side: ○ behind
-            mid = mid_before
-            prev = day_events(d - timedelta(days=1), lat, lon)
-            half_night = (sunrise - mid).total_seconds() if t >= mid else (mid - prev["sunset"]).total_seconds()
-        off = (t - mid).total_seconds()
-        span = 100 * off / half_night
-        q = QUARTERS_NIGHT[min(3, int((span + 100) // 50))]
-        out["half_night_s"] = round(half_night, 3)
+    anchor, off, span = p["anchor"], p["offset"], p["span"]
+    quarters = QUARTERS_DAY if anchor == "noon" else QUARTERS_NIGHT
+    q = quarters[min(3, int((span + 100) // 50))]
+    if anchor == "midnight":
+        out["half_night_s"] = round(p["half_night"], 3)
 
     out["anchor"] = anchor
     out["offset_s"] = round(off, 3)
@@ -159,6 +176,32 @@ def bogenzeit(t: datetime, lat: float, lon: float) -> dict:
     out["quarter"] = q
     out["written"] = written_form(out["display_span"], out["display_offset_ks"], anchor)
     out["written_span"] = span_form(out["display_span"], anchor)
+    return out
+
+
+def place_in_day(p: dict) -> float:
+    """Spans from the starting ○ of the instant's Bogenzeit day, 0 to 400 (BZ spec §3.8)."""
+    span = p["span"]
+    if p["anchor"] == "noon":
+        return 200 + span
+    return span if span >= 0 else 400 + span
+
+
+def duration(t0: datetime, t1: datetime, lat: float, lon: float) -> dict:
+    """From t0 to t1 (BZ spec §3.8): signed, positive when t1 is later."""
+    seconds = (t1 - t0).total_seconds()
+    out = {"seconds": round(seconds, 3),
+           "display_ks": round(floor_div(seconds, 100) / 1000, 1)}
+    p0, p1 = position(t0, lat, lon), position(t1, lat, lon)
+    first, last = min(p0["date"], p1["date"]), max(p0["date"], p1["date"])
+    days = [first + timedelta(days=i) for i in range((last - first).days + 1)]
+    if any(not isinstance(day_events(day, lat, lon)["half_day_s"], float) for day in days):
+        out["spans"] = None
+        out["display_spans"] = None
+        return out
+    spans = place_in_day(p1) - place_in_day(p0) + 400 * (p1["date"] - p0["date"]).days
+    out["spans"] = round(spans, 4)
+    out["display_spans"] = int(math.floor(spans))
     return out
 
 
@@ -213,6 +256,18 @@ CASES = [
     ("Longyearbyen, 20 Feb 2027, 12:00 CET (first day the Sun clears the horizon)", "2027-02-20T11:00:00Z", 78.22, 15.63),
 ]
 
+DURATIONS = [
+    ("Houston, 1 Nov 2026, 11:08 CST to solar noon", "2026-11-01T17:08:00Z", "2026-11-01T18:05:06Z", 29.76, -95.37),
+    ("Houston, 1 Nov 2026, solar noon back to 11:08 CST (a countdown)", "2026-11-01T18:05:06Z", "2026-11-01T17:08:00Z", 29.76, -95.37),
+    ("Houston, 1 Nov 2026, 16:00 to 19:00 CST, across sunset", "2026-11-01T22:00:00Z", "2026-11-02T01:00:00Z", 29.76, -95.37),
+    ("Houston, 1 Nov 2026, 21:00 CST to 3:00 CST, across ○ and the BZ date", "2026-11-02T03:00:00Z", "2026-11-02T09:00:00Z", 29.76, -95.37),
+    ("Houston, 2 Nov 2026, 3:00 to 9:00 CST, across sunrise", "2026-11-02T09:00:00Z", "2026-11-02T15:00:00Z", 29.76, -95.37),
+    ("Houston, noon 1 Nov to noon 3 Nov 2026, two days", "2026-11-01T18:00:00Z", "2026-11-03T18:00:00Z", 29.76, -95.37),
+    ("Berlin, 21 Dec 2026, 8:00 to 20:00 CET, winter", "2026-12-21T07:00:00Z", "2026-12-21T19:00:00Z", 52.52, 13.40),
+    ("Tromsø, 21 Jun 2027, polar day: no spans", "2027-06-21T10:00:00Z", "2027-06-21T14:00:00Z", 69.65, 18.96),
+    ("Longyearbyen, 16 to 17 Feb 2027, from polar night into the first sunrise: no spans", "2027-02-16T11:00:00Z", "2027-02-17T11:00:00Z", 78.22, 15.63),
+]
+
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--vectors":
@@ -220,9 +275,15 @@ def main():
         for name, ts, lat, lon in CASES:
             t = datetime.fromisoformat(ts.replace("Z", "+00:00"))
             vecs.append({"name": name, "utc": ts, "lat": lat, "lon": lon, "expected": bogenzeit(t, lat, lon)})
+        durs = []
+        for name, ts0, ts1, lat, lon in DURATIONS:
+            t0 = datetime.fromisoformat(ts0.replace("Z", "+00:00"))
+            t1 = datetime.fromisoformat(ts1.replace("Z", "+00:00"))
+            durs.append({"name": name, "from": ts0, "to": ts1, "lat": lat, "lon": lon,
+                         "expected": duration(t0, t1, lat, lon)})
         print(json.dumps({"algorithm": "NOAA general solar position (fractional year)",
                           "tolerance": {"event_times_s": 1, "display_values": "exact"},
-                          "vectors": vecs}, indent=2, ensure_ascii=False))
+                          "vectors": vecs, "durations": durs}, indent=2, ensure_ascii=False))
         return
     ts, lat, lon = sys.argv[1], float(sys.argv[2]), float(sys.argv[3])
     t = datetime.fromisoformat(ts.replace("Z", "+00:00"))
