@@ -20,6 +20,9 @@ Usage:
   bz at <UTC> [--lat LAT --lon LON | --place NAME] [--json]
   bz day <DATE> [--lat LAT --lon LON | --place NAME] [--json]
   bz places
+  bz place <NAME> <LAT> <LON>
+  bz place <NAME>
+  bz place --forget <NAME>
 
 UTC is an RFC 3339 instant such as 2026-11-01T17:08:00Z. DATE is a
 Bogenzeit date, YYYY-MM-DD: the civil date of that day's solar noon.
@@ -28,7 +31,10 @@ LAT and LON are decimal degrees, north and east positive.
 Bare bz is the reading for now. Without coordinates, the place comes
 from ~/.config/bz/config (or $XDG_CONFIG_HOME/bz/config): one place per
 line as `name = lat, lon`, and `place = name` for the one used when
---place is not given. `bz places` lists them.
+--place is not given. `bz place` writes that file: with coordinates it
+adds or replaces a place, and the first place written becomes the
+default; with a name alone it makes that place the default; with
+--forget it removes one. `bz places` lists them.
 
 Instants print truncated to the whole second, toward the past, like every
 Bogenzeit readout.
@@ -58,7 +64,8 @@ fn quiet_on_closed_pipe() {}
 
 struct Invocation {
     verb: String,
-    operand: Option<String>,
+    operands: Vec<String>,
+    forget: bool,
     lat: f64,
     lon: f64,
     json: bool,
@@ -95,6 +102,7 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
     let mut lat = None;
     let mut lon = None;
     let mut place = None;
+    let mut forget = false;
     let mut json = false;
     let mut i = 0;
     while i < args.len() {
@@ -120,8 +128,9 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
             "--lat" => lat = Some(value("--lat")?),
             "--lon" => lon = Some(value("--lon")?),
             "--place" => place = Some(value("--place")?),
+            "--forget" => forget = true,
             "--json" => json = true,
-            f if f.starts_with('-') && f.len() > 1 => {
+            f if f.starts_with('-') && f.len() > 1 && f.parse::<f64>().is_err() => {
                 return Err(format!("unknown flag {f}; see bz --help"));
             }
             _ => positional.push(arg.clone()),
@@ -131,9 +140,13 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
     let mut positional = positional.into_iter();
     // Bare `bz`, flags or not, is the reading for now.
     let verb = positional.next().unwrap_or_else(|| "now".to_string());
-    let operand = positional.next();
-    if let Some(extra) = positional.next() {
-        return Err(format!("unexpected argument `{extra}`; see bz --help"));
+    let operands: Vec<String> = positional.collect();
+    let limit = if verb == "place" { 3 } else { 1 };
+    if operands.len() > limit {
+        return Err(format!(
+            "unexpected argument `{}`; see bz --help",
+            operands[limit]
+        ));
     }
     let location = match (lat, lon, place) {
         (Some(lat), Some(lon), None) => Where::Coordinates(
@@ -146,14 +159,15 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
         }
         _ => return Err("--lat and --lon go together; see bz --help".into()),
     };
-    let (lat, lon) = if verb == "places" {
+    let (lat, lon) = if verb == "places" || verb == "place" {
         (0.0, 0.0)
     } else {
         locate(location)?
     };
     Ok(Invocation {
         verb,
-        operand,
+        operands,
+        forget,
         lat,
         lon,
         json,
@@ -184,13 +198,14 @@ fn locate(location: Where) -> Result<(f64, f64), String> {
 
 fn run(inv: Invocation) -> Result<(), String> {
     let operand = |what: &str| {
-        inv.operand
-            .clone()
+        inv.operands
+            .first()
+            .cloned()
             .ok_or_else(|| format!("bz {} needs {what}; see bz --help", inv.verb))
     };
     match inv.verb.as_str() {
         "now" => {
-            if inv.operand.is_some() {
+            if !inv.operands.is_empty() {
                 return Err("bz now takes no operand; see bz --help".into());
             }
             print_reading(&Reading::at(Instant::now(), inv.lat, inv.lon), inv.json);
@@ -209,10 +224,31 @@ fn run(inv: Invocation) -> Result<(), String> {
             );
         }
         "places" => {
-            if inv.operand.is_some() {
+            if !inv.operands.is_empty() {
                 return Err("bz places takes no operand; see bz --help".into());
             }
             print_places(&Places::load()?, inv.json);
+        }
+        "place" => {
+            let mut places = Places::load()?;
+            match (inv.operands.as_slice(), inv.forget) {
+                ([name], true) => places.forget(name)?,
+                ([name], false) => places.make_default(name)?,
+                ([name, lat, lon], false) => {
+                    if name.contains(['=', ',', '#']) || name.trim() != name {
+                        return Err(format!("`{name}` is not a place name; use letters, digits, - and _"));
+                    }
+                    let lat = places::degrees(lat, 90.0).map_err(|e| format!("latitude {e}"))?;
+                    let lon = places::degrees(lon, 180.0).map_err(|e| format!("longitude {e}"))?;
+                    places.set(name, lat, lon);
+                }
+                _ => {
+                    return Err("bz place <NAME> <LAT> <LON>, bz place <NAME>, or bz place --forget <NAME>; see bz --help".into())
+                }
+            }
+            let path = places.save()?;
+            println!("{}", path.display());
+            print_places(&places, false);
         }
         other => return Err(format!("unknown verb `{other}`; see bz --help")),
     }

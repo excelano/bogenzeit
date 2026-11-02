@@ -37,12 +37,14 @@ the day's events; `day` prints the day's table of anchors, quarter boundaries,
 sunrise, sunset and twilights in time order. `--json` gives either as an object;
 `bz --help` has the rest.
 
-Coordinates can live in a config file instead, `~/.config/bz/config`, one place
-per line and the default named:
+Coordinates can live in a config file instead, written by `bz place`:
 
-    place = home
-    home = 29.76, -95.37
-    camp = 36.45, -104.95
+    bz place home 29.76 -95.37
+    bz place camp 36.45 -104.95
 
-Then `bz` alone reads for home, `bz --place camp` for the camp, and
-`bz places` lists them. Coordinates on the command line still win.
+The first place written is the default, `bz place camp` makes another the
+default, and `bz place --forget camp` removes one. Then `bz` alone reads for the
+default, `bz --place camp` for another, and `bz places` lists them. The file is
+`~/.config/bz/config`, one place per line as `name = lat, lon` with
+`place = name` for the default, and can be edited by hand. Coordinates on the
+command line still win.

@@ -82,6 +82,64 @@ impl Places {
         Ok(Places { default, places })
     }
 
+    /// Adds or replaces a place; the first place written becomes the default.
+    pub fn set(&mut self, name: &str, lat: f64, lon: f64) {
+        if let Some(entry) = self.places.iter_mut().find(|(n, _, _)| n == name) {
+            entry.1 = lat;
+            entry.2 = lon;
+        } else {
+            self.places.push((name.to_string(), lat, lon));
+        }
+        if self.default.is_none() {
+            self.default = Some(name.to_string());
+        }
+    }
+
+    pub fn make_default(&mut self, name: &str) -> Result<(), String> {
+        if self.find(name).is_none() {
+            return Err(format!("no place named {name}; `bz places` lists them"));
+        }
+        self.default = Some(name.to_string());
+        Ok(())
+    }
+
+    pub fn forget(&mut self, name: &str) -> Result<(), String> {
+        let before = self.places.len();
+        self.places.retain(|(n, _, _)| n != name);
+        if self.places.len() == before {
+            return Err(format!("no place named {name}; `bz places` lists them"));
+        }
+        if self.default.as_deref() == Some(name) {
+            self.default = self.places.first().map(|(n, _, _)| n.clone());
+        }
+        Ok(())
+    }
+
+    /// The file as `bz place` writes it: the default first, then every
+    /// place. Comments in a hand-written file do not survive a rewrite.
+    pub fn render(&self) -> String {
+        let mut out = String::new();
+        if let Some(name) = &self.default {
+            out.push_str(&format!("place = {name}\n"));
+        }
+        for (name, lat, lon) in &self.places {
+            out.push_str(&format!("{name} = {lat}, {lon}\n"));
+        }
+        out
+    }
+
+    /// Writes the file, making its folder, through a temporary file and a
+    /// rename so a crash leaves the old file or the new, never half of one.
+    pub fn save(&self) -> Result<PathBuf, String> {
+        let path = Self::path().ok_or("no home directory to keep the config in")?;
+        let dir = path.parent().ok_or("the config path has no folder")?;
+        fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+        let temp = dir.join(".config.bz-tmp");
+        fs::write(&temp, self.render()).map_err(|e| format!("{}: {e}", temp.display()))?;
+        fs::rename(&temp, &path).map_err(|e| format!("{}: {e}", path.display()))?;
+        Ok(path)
+    }
+
     pub fn find(&self, name: &str) -> Option<(f64, f64)> {
         self.places
             .iter()
@@ -113,6 +171,27 @@ mod tests {
         assert_eq!(p.default.as_deref(), Some("home"));
         assert_eq!(p.find("camp"), Some((36.45, -104.95)));
         assert_eq!(p.places.len(), 2);
+    }
+
+    #[test]
+    fn sets_defaults_and_forgets_and_renders() {
+        let mut p = Places::parse("").unwrap();
+        p.set("home", 29.76, -95.37);
+        p.set("camp", 36.45, -104.95);
+        assert_eq!(p.default.as_deref(), Some("home"));
+        p.set("home", 29.8, -95.4);
+        assert_eq!(p.find("home"), Some((29.8, -95.4)));
+        p.make_default("camp").unwrap();
+        assert!(p.make_default("nowhere").is_err());
+        assert_eq!(
+            p.render(),
+            "place = camp\nhome = 29.8, -95.4\ncamp = 36.45, -104.95\n"
+        );
+        p.forget("camp").unwrap();
+        assert_eq!(p.default.as_deref(), Some("home"));
+        assert!(p.forget("camp").is_err());
+        let again = Places::parse(&p.render()).unwrap();
+        assert_eq!(again.places.len(), 1);
     }
 
     #[test]
