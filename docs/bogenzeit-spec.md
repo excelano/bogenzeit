@@ -107,7 +107,7 @@ The glyph is a fixed point on a timeline read left to right. **Position replaces
 
 - **Horizon glyphs replace 100.** A span position of 100 is written with the horizon glyph instead: `100 ☉` is `△`, and `100 ○` is `▽`. As with `☉` alone at solar noon, the glyph alone shows from the event until the next display step (§5.2), so a span position never has three digits. Offsets keep their anchor: sunrise in the offset form is still `19.83 ks ☉`.
 - No `+` or `−` characters in display.
-- A thin space (U+2009) separates number and glyph.
+- A plain space (U+0020) separates number and glyph.
 - The same grammar is used for spans and for ks offsets. Units distinguish them: spans are bare numbers, offsets carry `ks`.
 - The glyph tells day from night, so no separate night marker is needed.
 - Left = before assumes left-to-right text. In right-to-left contexts, isolate the readout (U+2066 … U+2069) or the meaning can flip.
