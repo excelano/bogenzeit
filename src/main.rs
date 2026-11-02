@@ -4,21 +4,30 @@
 //! The bz command: a Bogenzeit reading for now or for a given instant, and
 //! the table of one Bogenzeit day. Flags are read wherever they appear.
 
+mod places;
+
 use std::process::ExitCode;
 
 use bz::{Date, HalfArc, Instant, Reading, SolarDay};
+use places::Places;
 
 const HELP: &str = "\
 bz: Bogenzeit, time as position on the Sun's arc
 
 Usage:
-  bz now --lat LAT --lon LON [--json]
-  bz at <UTC> --lat LAT --lon LON [--json]
-  bz day <DATE> --lat LAT --lon LON [--json]
+  bz now [--lat LAT --lon LON | --place NAME] [--json]
+  bz at <UTC> [--lat LAT --lon LON | --place NAME] [--json]
+  bz day <DATE> [--lat LAT --lon LON | --place NAME] [--json]
+  bz places
 
 UTC is an RFC 3339 instant such as 2026-11-01T17:08:00Z. DATE is a
 Bogenzeit date, YYYY-MM-DD: the civil date of that day's solar noon.
 LAT and LON are decimal degrees, north and east positive.
+
+Without coordinates, the place comes from ~/.config/bz/config (or
+$XDG_CONFIG_HOME/bz/config): one place per line as `name = lat, lon`,
+and `place = name` for the one used when --place is not given.
+`bz places` lists them.
 
 Instants print truncated to the whole second, toward the past, like every
 Bogenzeit readout.
@@ -26,6 +35,25 @@ Bogenzeit readout.
 Exit codes: 0 success; 2 bad invocation (an unknown flag, a missing argument,
 an instant, date or coordinate that does not parse).
 ";
+
+/// Rust ignores SIGPIPE, so `bz day ... | head` would end in a panic on a
+/// closed stdout; the default disposition ends the process quietly instead.
+#[cfg(unix)]
+fn quiet_on_closed_pipe() {
+    extern "C" {
+        fn signal(signum: i32, handler: usize) -> usize;
+    }
+    const SIGPIPE: i32 = 13;
+    const SIG_DFL: usize = 0;
+    // SAFETY: resetting a signal disposition to the default before any
+    // thread or I/O exists has no preconditions beyond the C ABI.
+    unsafe {
+        signal(SIGPIPE, SIG_DFL);
+    }
+}
+
+#[cfg(not(unix))]
+fn quiet_on_closed_pipe() {}
 
 struct Invocation {
     verb: String,
@@ -35,7 +63,14 @@ struct Invocation {
     json: bool,
 }
 
+/// Where the reading is for: given outright, or named from the config file.
+enum Where {
+    Coordinates(f64, f64),
+    Place(Option<String>),
+}
+
 fn main() -> ExitCode {
+    quiet_on_closed_pipe();
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.is_empty() || args.iter().any(|a| a == "--help" || a == "-h") {
         print!("{HELP}");
@@ -58,6 +93,7 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
     let mut positional = Vec::new();
     let mut lat = None;
     let mut lon = None;
+    let mut place = None;
     let mut json = false;
     let mut i = 0;
     while i < args.len() {
@@ -82,6 +118,7 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
             }
             "--lat" => lat = Some(value("--lat")?),
             "--lon" => lon = Some(value("--lon")?),
+            "--place" => place = Some(value("--place")?),
             "--json" => json = true,
             f if f.starts_with('-') && f.len() > 1 => {
                 return Err(format!("unknown flag {f}; see bz --help"));
@@ -93,13 +130,27 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
     let mut positional = positional.into_iter();
     let verb = positional
         .next()
-        .ok_or("a verb is needed: now, at or day; see bz --help")?;
+        .ok_or("a verb is needed: now, at, day or places; see bz --help")?;
     let operand = positional.next();
     if let Some(extra) = positional.next() {
         return Err(format!("unexpected argument `{extra}`; see bz --help"));
     }
-    let lat = coordinate("--lat", lat, 90.0)?;
-    let lon = coordinate("--lon", lon, 180.0)?;
+    let location = match (lat, lon, place) {
+        (Some(lat), Some(lon), None) => Where::Coordinates(
+            places::degrees(&lat, 90.0).map_err(|e| format!("--lat {e}"))?,
+            places::degrees(&lon, 180.0).map_err(|e| format!("--lon {e}"))?,
+        ),
+        (None, None, place) => Where::Place(place),
+        (Some(_), Some(_), Some(_)) => {
+            return Err("--place or --lat and --lon, not both; see bz --help".into())
+        }
+        _ => return Err("--lat and --lon go together; see bz --help".into()),
+    };
+    let (lat, lon) = if verb == "places" {
+        (0.0, 0.0)
+    } else {
+        locate(location)?
+    };
     Ok(Invocation {
         verb,
         operand,
@@ -109,15 +160,26 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
     })
 }
 
-fn coordinate(name: &str, value: Option<String>, limit: f64) -> Result<f64, String> {
-    let text = value.ok_or_else(|| format!("{name} is required; see bz --help"))?;
-    let degrees: f64 = text
-        .parse()
-        .map_err(|_| format!("{name} `{text}` is not a number of degrees"))?;
-    if !(-limit..=limit).contains(&degrees) {
-        return Err(format!("{name} {text} is outside -{limit} to {limit}"));
+/// The coordinates to use: the ones given, else the named or default place
+/// from the config file.
+fn locate(location: Where) -> Result<(f64, f64), String> {
+    match location {
+        Where::Coordinates(lat, lon) => Ok((lat, lon)),
+        Where::Place(name) => {
+            let places = Places::load()?;
+            let path = Places::path()
+                .map(|p| p.display().to_string())
+                .unwrap_or_default();
+            match name.or(places.default.clone()) {
+                Some(name) => places
+                    .find(&name)
+                    .ok_or_else(|| format!("no place named {name} in {path}; `bz places` lists them")),
+                None => Err(format!(
+                    "no place: give --lat and --lon, or put `place = home` and `home = LAT, LON` in {path}"
+                )),
+            }
+        }
     }
-    Ok(degrees)
 }
 
 fn run(inv: Invocation) -> Result<(), String> {
@@ -145,6 +207,12 @@ fn run(inv: Invocation) -> Result<(), String> {
                 inv.lon,
                 inv.json,
             );
+        }
+        "places" => {
+            if inv.operand.is_some() {
+                return Err("bz places takes no operand; see bz --help".into());
+            }
+            print_places(&Places::load()?, inv.json);
         }
         other => return Err(format!("unknown verb `{other}`; see bz --help")),
     }
@@ -247,6 +315,42 @@ fn print_day(day: &SolarDay, lat: f64, lon: f64, json: bool) {
             evening,
             evening / 100.0
         );
+    }
+}
+
+/// The config file's places; the default marked. An empty file is an answer.
+fn print_places(places: &Places, json: bool) {
+    if json {
+        let entries: Vec<String> = places
+            .places
+            .iter()
+            .map(|(name, lat, lon)| {
+                format!(
+                    "{{\"name\": {}, \"lat\": {lat}, \"lon\": {lon}, \"default\": {}}}",
+                    quoted(name),
+                    places.default.as_deref() == Some(name)
+                )
+            })
+            .collect();
+        println!("[{}]", entries.join(", "));
+        return;
+    }
+    if places.places.is_empty() {
+        println!(
+            "no places in {}; add `home = LAT, LON` and `place = home`",
+            Places::path()
+                .map(|p| p.display().to_string())
+                .unwrap_or_default()
+        );
+        return;
+    }
+    for (name, lat, lon) in &places.places {
+        let mark = if places.default.as_deref() == Some(name) {
+            "  default"
+        } else {
+            ""
+        };
+        println!("{name:<12}{lat}, {lon}{mark}");
     }
 }
 

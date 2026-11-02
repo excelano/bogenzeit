@@ -36,3 +36,13 @@ https://github.com/excelano/tagbogen.
 the day's events; `day` prints the day's table of anchors, quarter boundaries,
 sunrise, sunset and twilights in time order. `--json` gives either as an object;
 `bz --help` has the rest.
+
+Coordinates can live in a config file instead, `~/.config/bz/config`, one place
+per line and the default named:
+
+    place = home
+    home = 29.76, -95.37
+    camp = 36.45, -104.95
+
+Then `bz now` reads for home, `bz now --place camp` for the camp, and
+`bz places` lists them. Coordinates on the command line still win.
