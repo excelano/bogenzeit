@@ -1,10 +1,10 @@
-# Bogenzeit — Spec (draft 0.13)
+# Bogenzeit — Spec (draft 0.14)
 
 Bogenzeit is a personal way to see and think about time, centered on the local Sun.
 It connects to UTC and civil time zones, but the primary readout follows
 solar noon, sunrise, and sunset at the observer's location.
 
-Status: draft 0.13. First lives as this file; the **Tagbogen** watch face comes next.
+Status: draft 0.14. First lives as this file; the **Tagbogen** watch face comes next.
 
 **Bogenzeit** ("arc time", abbreviated **BZ**) is the time standard: time read as position on the Sun's arc, not as a count of hours. **Tagbogen** is the watch face that displays it.
 
@@ -17,7 +17,7 @@ Status: draft 0.13. First lives as this file; the **Tagbogen** watch face comes 
 3. **Location is an input.** Solar times change with longitude (east–west), latitude (north–south), and season. Location must be tracked, not assumed.
 4. **Keep existing names for existing definitions.** Days are days, months are months.
 5. **No hours or minutes in the readout.** The second is the base unit. Readouts use kiloseconds (fixed) and spans (proportional).
-6. **New terms only for new definitions.** Anything defined differently gets its own name, marked *(coined)* in this spec.
+6. **New terms only for new definitions.** Anything defined differently gets its own name, marked *(coined)*. An existing word given an exact Bogenzeit boundary keeps its name, marked *(adopted)*.
 7. **Purpose: seeing and thinking, not logging.** The system describes where you are in the solar day. It does not record activity.
 
 ---
@@ -47,7 +47,7 @@ Status: draft 0.13. First lives as this file; the **Tagbogen** watch face comes 
 | Tagbogen (day arc) | German astronomical term: the part of a body's daily path above the horizon. For the Sun: sunrise → sunset. |
 | Nachtbogen (night arc) | The part of the daily path below the horizon. For the Sun: sunset → sunrise. |
 
-### 2.2 Coined terms
+### 2.2 Coined and adopted terms
 
 | Term | Definition |
 |---|---|
@@ -56,7 +56,8 @@ Status: draft 0.13. First lives as this file; the **Tagbogen** watch face comes 
 | **Midnight offset** *(coined, working name)* | Time from local solar midnight, in kiloseconds. Written with the ○ glyph (§3). Used at night in place of the noon offset. |
 | **Span** *(coined, working name)* | Proportional unit: each half of the Tagbogen is 100 spans, and each half of the Nachtbogen is 100 spans. Span length in seconds = (that half's length in s) / 100, so it changes with season and latitude. |
 
-| **Quarters** *(coined)* | Each arc is split into four quarters at 50 spans. Eight named periods: Afterrise, Forenoon, Afternoon, Foreset (Tagbogen); Afterset, Foremid, Aftermid, Forerise (Nachtbogen). See §3.6. |
+| **Quarters** *(adopted)* | The four parts of the day — Morning, Afternoon, Evening, Night — each a half-arc of 100 spans, fixed by anchor and side. See §3.6. |
+| **Eighths** *(coined)* | Each quarter split at its 50-span midpoint. Eight named periods: Afterrise, Forenoon, Afternoon, Foreset (Tagbogen); Afterset, Foremid, Aftermid, Forerise (Nachtbogen). See §3.6. |
 
 **Naming note — "span":** no conflict as a time *unit* (no standard or historical unit of time is called a span). Overlaps to be aware of: "span" is a traditional unit of *length* (~9 in, a hand's width); in software, `Span` is an interval with a start and end (OpenTelemetry, Rust `tracing`) and `TimeSpan` is a duration type in .NET. In code, use a qualified name (e.g. `SolarSpan`) to avoid collisions.
 
@@ -132,13 +133,22 @@ The glyph is a fixed point on a timeline read left to right. **Position replaces
 
 At high latitudes there may be no sunrise or sunset on some dates (polar day or polar night). Solar noon and solar midnight still exist every day, so the noon offset always works; sunrise/sunset fields show "none" and spans are not shown.
 
-### 3.6 Quarters
+### 3.6 Quarters and eighths
 
-Each arc splits into four quarters at the 50-span marks. Every quarter touches exactly one horizon event (sunrise or sunset) and one anchor (☉ or ○), and is named for its **nearest horizon or anchor event**, with **Fore-** (before it) or **After-** (after it).
+**Quarters (adopted).** The anchors and the horizons cut the day into four quarters — the everyday parts of the day, given exact edges. Each is a half-arc of 100 spans, and a reading already names it: the glyph gives the anchor, and the side the number sits on gives the direction.
 
-The rule matches positional notation: *Fore-* = number left of the glyph, *After-* = number right of the glyph.
+| Quarter | Reading | Arc | Nearest events |
+|---|---|---|---|
+| **Morning** | `N ☉` (before noon) | `△` → `☉` | sunrise to solar noon |
+| **Afternoon** | `☉ N` (after noon) | `☉` → `▽` | solar noon to sunset |
+| **Evening** | `N ○` (before midnight) | `▽` → `○` | sunset to solar midnight |
+| **Night** | `○ N` (after midnight) | `○` → `△` | solar midnight to sunrise |
 
-| Arc | Spans | Quarter | Nearest event | Today, Houston (CST, approx.) |
+The quarters are the coarse, spoken layer; the number places the moment within one and is all that is needed to read the time. The quarter boundaries are the named events themselves (△ ☉ ▽ ○).
+
+**Eighths (coined).** Each quarter splits at its 50-span midpoint into two eighths, each named for its **nearest horizon or anchor event**, with **Fore-** (before it) or **After-** (after it). The rule matches positional notation: *Fore-* = number left of the glyph, *After-* = number right of the glyph.
+
+| Arc | Spans | Eighth | Nearest event | Today, Houston (CST, approx.) |
 |---|---|---|---|---|
 | Tagbogen | `△` → `50 ☉` | **Afterrise** | after sunrise | 06:34 → 09:20 |
 | | `50 ☉` → `☉` | **Forenoon** | before solar noon | 09:20 → 12:05 |
@@ -149,21 +159,22 @@ The rule matches positional notation: *Fore-* = number left of the glyph, *After
 | | `○` → `○ 50` | **Aftermid** | after solar midnight | 00:05 → 03:20 |
 | | `○ 50` → `△` | **Forerise** | before sunrise | 03:20 → 06:35 |
 
-**Quarter boundaries** have no names of their own; they are written in notation: `50 ☉`, `☉ 50`, `50 ○`, `○ 50`.
+**Eighth boundaries** have no names of their own; they are written in notation: `50 ☉`, `☉ 50`, `50 ○`, `○ 50`.
 
 **Roots:** *rise* = sunrise (△), *noon* = solar noon (☉), *set* = sunset (▽), *mid* = solar midnight (○). Full forms Foremidnight / Aftermidnight may be used where space allows.
 
 **Properties**
-- Quarter length = 50 spans of its arc, so it changes with season and latitude. Today a Tagbogen quarter is about 9.9 ks; in Houston it ranges from roughly 9 ks (December) to 12–13 ks (June). Nachtbogen quarters do the opposite.
-- The Tagbogen and Nachtbogen boundaries meet at sunrise and sunset, so the eight quarters cover the full apparent solar day with no gaps.
+- A quarter is 100 spans of its arc (about 19.8 ks today at Houston); an eighth is 50 spans (about 9.9 ks). Both change with season and latitude — a Tagbogen eighth runs from roughly 9 ks (December) to 12–13 ks (June) in Houston, and Nachtbogen eighths do the opposite.
+- The Tagbogen and Nachtbogen boundaries meet at sunrise and sunset, so the four quarters, and the eight eighths, cover the full apparent solar day with no gaps.
 
 **Naming notes**
-- All eight are coined Bogenzeit terms and are always capitalized. *Forenoon* and *Afternoon* are also existing English words with looser meanings; the capital letter marks the Bogenzeit definition ("Afternoon" = `☉` → `☉ 50`, not "sometime after lunch").
+- The four quarters are adopted English words given exact edges. The eight eighths are coined Bogenzeit terms, always capitalized. *Forenoon* and *Afternoon* are also looser English words; the capital marks the Bogenzeit definition.
+- *Afternoon* names both a quarter (`☉` → `▽`, solar noon to sunset) and its first eighth (`☉` → `☉ 50`). Scope disambiguates; where both could be shown, the quarter stands and the eighth drops.
 - *Foreset* is also a geology term (foreset beds); no conflict in time contexts.
-- Boundaries: a quarter includes its start and excludes its end (e.g. exactly `50 ☉` is Forenoon).
-- Polar day/night: with no sunrise or sunset, quarters are undefined (same fallback as spans, §3.5).
+- Boundaries: a quarter or eighth includes its start and excludes its end (e.g. exactly `50 ☉` is Forenoon).
+- Polar day/night: with no sunrise or sunset, quarters and eighths are undefined (same fallback as spans, §3.5).
 
-**Readout:** the watch face may show the current quarter name as context, e.g. `Forenoon | 21 ☉`. A single drawn quadrant mark (not a font glyph, per the matching rule in §3.1) can indicate the quarter graphically.
+**Readout:** the watch face may show the current eighth name as context, e.g. `Forenoon | 21 ☉` (the quarter, Morning, is already in the reading). A single drawn quadrant mark (not a font glyph, per the matching rule in §3.1) can indicate the quarter graphically.
 
 ### 3.7 Written forms
 
@@ -254,7 +265,7 @@ The steps pair up: whole spans with one decimal of ks, one decimal of spans with
 - The same rule applies to ks offsets (floor of signed seconds ÷ the step).
 - A readout shows no finer step than it refreshes: a watch-face complication or a dimmed always-on screen falls back to whole spans or one decimal of ks.
 
-**No intermediate unit.** Quarters (~10 ks) → spans (~200 s) → seconds is a usable ladder, comparable to hours → minutes → seconds. ks is a parallel fixed scale, not a level in that ladder.
+**No intermediate unit.** Eighths (~10 ks) → spans (~200 s) → seconds is a usable ladder, comparable to hours → minutes → seconds. ks is a parallel fixed scale, not a level in that ladder.
 
 ### 5.3 Full Bogenzeit timestamp
 
@@ -272,7 +283,7 @@ A position alone (`59 ☉`) is ambiguous, since spans depend on date and place. 
 Ignored. Sunrise and sunset are computed for a sea-level, flat horizon (Sun's center at −0.833°).
 
 - **Solar noon and solar midnight are unaffected.** They are meridian crossings and do not depend on the horizon. ☉ and ○ stay exact anywhere.
-- Only sunrise, sunset, and therefore span lengths and quarter boundaries shift. Observer elevation lowers the apparent horizon (for example, at ~2,000 m sunrise is several minutes earlier); surrounding terrain raises it. Both effects are symmetric around ☉, so spans remain symmetric.
+- Only sunrise, sunset, and therefore span lengths and eighth boundaries shift. Observer elevation lowers the apparent horizon (for example, at ~2,000 m sunrise is several minutes earlier); surrounding terrain raises it. Both effects are symmetric around ☉, so spans remain symmetric.
 - Ignoring them keeps Bogenzeit reproducible from date + coordinates alone.
 
 ### 5.5 Location changes
@@ -363,8 +374,8 @@ Yesterday under CDT, solar noon was about 13:05 civil. The civil clock jumped an
 - ~~Sunrise and sunset glyphs~~ — decided: △ and ▽, standing in for the 100-span position; nothing is counted from them (§3.1, §3.2).
 - ~~Anchor glyphs~~ — decided: ☉ noon, ○ midnight.
 - ~~Names~~ — decided: Bogenzeit (standard), Tagbogen (watch face).
-- ~~Quarters~~ — decided: four per arc, named Fore-/After- + nearest event (§3.6).
-- ~~Names for quarter boundaries~~ — decided: none. The 50-span points are written in notation only (`50 ☉`, `☉ 50`, `50 ○`, `○ 50`). Named transitions are limited to sunrise, solar noon, sunset, solar midnight.
+- ~~Quarters and eighths~~ — decided: four quarters (Morning, Afternoon, Evening, Night; adopted), each a half-arc; each split into two eighths named Fore-/After- + nearest event (§3.6).
+- ~~Names for eighth boundaries~~ — decided: none. The 50-span points are written in notation only (`50 ☉`, `☉ 50`, `50 ○`, `○ 50`). Named transitions are limited to sunrise, solar noon, sunset, solar midnight.
 - ~~Date switchover~~ — decided: at solar midnight (§5.1).
 - ~~Rounding~~ — decided: floor of the signed value at the precision shown (§5.2).
 - ~~Display precision~~ — decided: spans whole or to two decimals, ks to one, two or three; the written forms use whole spans and two decimals of ks (§5.2).
