@@ -21,8 +21,8 @@ language, passes those vectors: event times within a second, displayed values
 exact. Add a vector by adding a case to the reference and regenerating the file,
 then carry the file to each port's repository.
 
-Tagbogen, the Apple Watch and iPhone apps that show Bogenzeit, is at
-https://github.com/excelano/tagbogen.
+Bogentag, the Apple Watch and iPhone apps that show Bogenzeit, is at
+https://github.com/excelano/bogentag.
 
 ## Install and run
 
