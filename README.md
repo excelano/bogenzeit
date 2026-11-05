@@ -31,11 +31,16 @@ https://github.com/excelano/bogentag.
     bz now --lat 29.76 --lon -95.37
     bz at 2026-11-01T17:08:00Z --lat 29.76 --lon -95.37
     bz day 2026-11-01 --lat 29.76 --lon -95.37
+    bz between 2026-11-01T12:00:00Z 2026-11-01T17:08:00Z --lat 29.76 --lon -95.37
 
-`now` and `at` print the full timestamp, the quarter, the span length today and
-the day's events; `day` prints the day's table of anchors, quarter boundaries,
-sunrise, sunset and twilights in time order. `--json` gives either as an object;
-`bz --help` has the rest.
+`now` and `at` print the full timestamp, the quarter and eighth, the span length
+today and the day's events; `--form span`, `offset` or `combined` picks the
+written form of the position, and `--precision low`, `medium` or `high` its
+steps. `day` prints the day's table of anchors, horizon events, eighth
+boundaries and twilights in time order, with the quarter or eighth each one
+begins. `between` gives the time between two instants in spans and ks, or with
+one instant the time from now, as `in 24 spans` or `23 spans ago`. `--json`
+gives any of them as an object; `bz --help` has the rest.
 
 Coordinates can live in a config file instead, written by `bz place`:
 

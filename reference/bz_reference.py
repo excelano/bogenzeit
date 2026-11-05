@@ -26,8 +26,8 @@ SUNRISE_ALT = -0.833   # deg; Sun's center, includes refraction (BZ spec §2.1)
 TWILIGHTS = {"civil": -6.0, "nautical": -12.0, "astronomical": -18.0}
 DAY_S = 86400.0
 
-QUARTERS_DAY = ["Afterrise", "Forenoon", "Afternoon", "Foreset"]
-QUARTERS_NIGHT = ["Afterset", "Foremid", "Aftermid", "Forerise"]
+EIGHTHS_DAY = ["Afterrise", "Forenoon", "Afternoon", "Foreset"]
+EIGHTHS_NIGHT = ["Afterset", "Foremid", "Aftermid", "Forerise"]
 
 
 def _is_leap(y):
@@ -155,7 +155,7 @@ def bogenzeit(t: datetime, lat: float, lon: float) -> dict:
         out["display_offset_ks"] = round(floor_div(p["offset"], 10) / 1000, 2)
         out["span"] = None
         out["display_span"] = None
-        out["quarter"] = None
+        out["eighth"] = None
         return out
 
     out["sunrise_utc"] = today["sunrise"].isoformat()
@@ -163,8 +163,8 @@ def bogenzeit(t: datetime, lat: float, lon: float) -> dict:
     out["tagbogen_s"] = round(2 * today["half_day_s"], 3)
 
     anchor, off, span = p["anchor"], p["offset"], p["span"]
-    quarters = QUARTERS_DAY if anchor == "noon" else QUARTERS_NIGHT
-    q = quarters[min(3, int((span + 100) // 50))]
+    eighths = EIGHTHS_DAY if anchor == "noon" else EIGHTHS_NIGHT
+    q = eighths[min(3, int((span + 100) // 50))]
     if anchor == "midnight":
         out["half_night_s"] = round(p["half_night"], 3)
 
@@ -173,7 +173,7 @@ def bogenzeit(t: datetime, lat: float, lon: float) -> dict:
     out["span"] = round(span, 4)
     out["display_span"] = int(math.floor(span))              # floor of signed value (BZ spec §5.2)
     out["display_offset_ks"] = round(floor_div(off, 10) / 1000, 2)
-    out["quarter"] = q
+    out["eighth"] = q
     out["written"] = written_form(out["display_span"], out["display_offset_ks"], anchor)
     out["written_span"] = span_form(out["display_span"], anchor)
     return out

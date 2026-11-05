@@ -30,7 +30,8 @@ extended-description = """
 Bogenzeit reads time as position on the Sun's arc instead of as a count of
 hours: spans from solar noon or solar midnight, a hundred per half-arc, and
 kiloseconds as the fixed scale beside them. bz computes a reading for any UTC
-instant and place, offline, and prints a day's table of anchors, quarter
-boundaries, sunrise, sunset and twilights. The standard it implements is the
-Bogenzeit spec in the same repository."""
+instant and place, offline, prints a day's table of anchors, eighth
+boundaries, sunrise, sunset and twilights, and counts the spans and ks between
+two instants. The standard it implements is the Bogenzeit spec in the same
+repository."""
 section = "utils"

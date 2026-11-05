@@ -23,7 +23,7 @@
         "span": -17.2743,
         "display_span": -18,
         "display_offset_ks": -3.43,
-        "quarter": "Forenoon",
+        "eighth": "Forenoon",
         "written": "18 [3.43 ks] ☉",
         "written_span": "18 ☉"
       }
@@ -46,7 +46,7 @@
         "span": 0.0001,
         "display_span": 0,
         "display_offset_ks": 0.0,
-        "quarter": "Afternoon",
+        "eighth": "Afternoon",
         "written": "☉",
         "written_span": "☉"
       }
@@ -70,7 +70,7 @@
         "span": -47.5283,
         "display_span": -48,
         "display_offset_ks": -11.11,
-        "quarter": "Foremid",
+        "eighth": "Foremid",
         "written": "48 [11.11 ks] ○",
         "written_span": "48 ○"
       }
@@ -94,7 +94,7 @@
         "span": -0.7964,
         "display_span": -1,
         "display_offset_ks": -0.19,
-        "quarter": "Foremid",
+        "eighth": "Foremid",
         "written": "1 [0.19 ks] ○",
         "written_span": "1 ○"
       }
@@ -118,7 +118,7 @@
         "span": 44.8182,
         "display_span": 44,
         "display_offset_ks": 10.49,
-        "quarter": "Aftermid",
+        "eighth": "Aftermid",
         "written": "○ 44 [10.49 ks]",
         "written_span": "○ 44"
       }
@@ -141,7 +141,7 @@
         "span": -54.8732,
         "display_span": -55,
         "display_offset_ks": -14.48,
-        "quarter": "Afterrise",
+        "eighth": "Afterrise",
         "written": "55 [14.48 ks] ☉",
         "written_span": "55 ☉"
       }
@@ -164,7 +164,7 @@
         "span": -93.073,
         "display_span": -94,
         "display_offset_ks": -20.29,
-        "quarter": "Afterrise",
+        "eighth": "Afterrise",
         "written": "94 [20.29 ks] ☉",
         "written_span": "94 ☉"
       }
@@ -187,7 +187,7 @@
         "span": 50.4352,
         "display_span": 50,
         "display_offset_ks": 6.94,
-        "quarter": "Foreset",
+        "eighth": "Foreset",
         "written": "☉ 50 [6.94 ks]",
         "written_span": "☉ 50"
       }
@@ -208,7 +208,7 @@
         "display_offset_ks": 4.47,
         "span": null,
         "display_span": null,
-        "quarter": null
+        "eighth": null
       }
     },
     {
@@ -229,7 +229,7 @@
         "span": 99.996,
         "display_span": 99,
         "display_offset_ks": 19.83,
-        "quarter": "Foreset",
+        "eighth": "Foreset",
         "written": "☉ 99 [19.83 ks]",
         "written_span": "☉ 99"
       }
@@ -253,7 +253,7 @@
         "span": -99.9991,
         "display_span": -100,
         "display_offset_ks": -23.37,
-        "quarter": "Afterset",
+        "eighth": "Afterset",
         "written": "100 [23.37 ks] ○",
         "written_span": "▽"
       }
@@ -277,7 +277,7 @@
         "span": 99.9993,
         "display_span": 99,
         "display_offset_ks": 23.36,
-        "quarter": "Forerise",
+        "eighth": "Forerise",
         "written": "○ 99 [23.36 ks]",
         "written_span": "○ 99"
       }
@@ -300,7 +300,7 @@
         "span": -99.9958,
         "display_span": -100,
         "display_offset_ks": -19.84,
-        "quarter": "Afterrise",
+        "eighth": "Afterrise",
         "written": "100 [19.84 ks] ☉",
         "written_span": "△"
       }
@@ -324,7 +324,7 @@
         "span": -0.0043,
         "display_span": -1,
         "display_offset_ks": -0.01,
-        "quarter": "Foremid",
+        "eighth": "Foremid",
         "written": "1 [0.01 ks] ○",
         "written_span": "1 ○"
       }
@@ -348,7 +348,7 @@
         "span": 0.0004,
         "display_span": 0,
         "display_offset_ks": 0.0,
-        "quarter": "Aftermid",
+        "eighth": "Aftermid",
         "written": "○",
         "written_span": "○"
       }
@@ -371,7 +371,7 @@
         "span": 29.4338,
         "display_span": 29,
         "display_offset_ks": 7.63,
-        "quarter": "Afternoon",
+        "eighth": "Afternoon",
         "written": "☉ 29 [7.63 ks]",
         "written_span": "☉ 29"
       }
@@ -394,7 +394,7 @@
         "span": -99.3032,
         "display_span": -100,
         "display_offset_ks": -12.88,
-        "quarter": "Afterrise",
+        "eighth": "Afterrise",
         "written": "100 [12.88 ks] ☉",
         "written_span": "△"
       }
@@ -418,7 +418,7 @@
         "span": 6.5706,
         "display_span": 6,
         "display_offset_ks": 1.27,
-        "quarter": "Aftermid",
+        "eighth": "Aftermid",
         "written": "○ 6 [1.27 ks]",
         "written_span": "○ 6"
       }
@@ -442,7 +442,7 @@
         "span": 0.1677,
         "display_span": 0,
         "display_offset_ks": 0.03,
-        "quarter": "Aftermid",
+        "eighth": "Aftermid",
         "written": "○ 0 [0.03 ks]",
         "written_span": "○"
       }
@@ -465,7 +465,7 @@
         "span": 7.5135,
         "display_span": 7,
         "display_offset_ks": 1.63,
-        "quarter": "Afternoon",
+        "eighth": "Afternoon",
         "written": "☉ 7 [1.63 ks]",
         "written_span": "☉ 7"
       }
@@ -488,7 +488,7 @@
         "span": 7.5135,
         "display_span": 7,
         "display_offset_ks": 1.63,
-        "quarter": "Afternoon",
+        "eighth": "Afternoon",
         "written": "☉ 7 [1.63 ks]",
         "written_span": "☉ 7"
       }
@@ -511,7 +511,7 @@
         "span": -5.975,
         "display_span": -6,
         "display_offset_ks": -1.17,
-        "quarter": "Forenoon",
+        "eighth": "Forenoon",
         "written": "6 [1.17 ks] ☉",
         "written_span": "6 ☉"
       }
@@ -532,7 +532,7 @@
         "display_offset_ks": 1.08,
         "span": null,
         "display_span": null,
-        "quarter": null
+        "eighth": null
       }
     },
     {
@@ -551,7 +551,7 @@
         "display_offset_ks": 4.69,
         "span": null,
         "display_span": null,
-        "quarter": null
+        "eighth": null
       }
     },
     {
@@ -572,7 +572,7 @@
         "span": -10.0727,
         "display_span": -11,
         "display_offset_ks": -0.7,
-        "quarter": "Forenoon",
+        "eighth": "Forenoon",
         "written": "11 [0.70 ks] ☉",
         "written_span": "11 ☉"
       }

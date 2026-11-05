@@ -1,24 +1,26 @@
 // Author: David M. Anderson
 // Built with AI assistance (Claude, Anthropic)
 
-//! The bz command: a Bogenzeit reading for now or for a given instant, and
-//! the table of one Bogenzeit day. Flags are read wherever they appear.
+//! The bz command: a Bogenzeit reading for now or for a given instant, the
+//! table of one Bogenzeit day, and the time between two instants. Flags are
+//! read wherever they appear.
 
 mod places;
 
 use std::process::ExitCode;
 
-use bz::{Date, HalfArc, Instant, Reading, SolarDay};
+use bz::{Date, Form, HalfArc, Instant, Precision, Reading, SolarDay, SolarDuration};
 use places::Places;
 
 const HELP: &str = "\
 bz: Bogenzeit, time as position on the Sun's arc
 
 Usage:
-  bz [--lat LAT --lon LON | --place NAME] [--json]
-  bz now [--lat LAT --lon LON | --place NAME] [--json]
-  bz at <UTC> [--lat LAT --lon LON | --place NAME] [--json]
-  bz day <DATE> [--lat LAT --lon LON | --place NAME] [--json]
+  bz [PLACE] [FORMAT]
+  bz now [PLACE] [FORMAT]
+  bz at <UTC> [PLACE] [FORMAT]
+  bz day <DATE> [PLACE] [--json]
+  bz between <UTC> [<UTC>] [PLACE] [--precision P] [--json]
   bz places
   bz place <NAME> <LAT> <LON>
   bz place <NAME>
@@ -28,6 +30,21 @@ UTC is an RFC 3339 instant such as 2026-11-01T17:08:00Z. DATE is a
 Bogenzeit date, YYYY-MM-DD: the civil date of that day's solar noon.
 LAT and LON are decimal degrees, north and east positive, or with a
 hemisphere letter: N29.67230 W095.47833.
+
+PLACE is --lat LAT --lon LON, or --place NAME, or nothing for the default
+place. FORMAT is any of:
+
+  --form F         span (59 ☉), offset (11.77 ks ☉) or combined
+                   (59 [11.77 ks] ☉, the default)
+  --precision P    low, medium or high: whole spans and one decimal of ks,
+                   one and two, or two and three; without it, whole spans
+                   and two decimals of ks, as the written forms are
+  --json           the reading as data, which neither flag changes
+
+bz between gives the time between two instants in spans and ks, both
+rounded down. With one instant it is read from now: in 24 spans, or 23
+spans ago. Spans are undefined across a day with no sunrise or sunset;
+ks always work.
 
 Bare bz is the reading for now at the default place. Places are kept in
 ~/.config/bz/config (or $XDG_CONFIG_HOME/bz/config), which bz place writes:
@@ -75,6 +92,8 @@ struct Invocation {
     lat: f64,
     lon: f64,
     json: bool,
+    form: Form,
+    precision: Option<Precision>,
 }
 
 /// Where the reading is for: given outright, or named from the config file.
@@ -110,6 +129,8 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
     let mut place = None;
     let mut forget = false;
     let mut json = false;
+    let mut form = Form::Combined;
+    let mut precision = None;
     let mut i = 0;
     while i < args.len() {
         let arg = &args[i];
@@ -136,6 +157,18 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
             "--place" => place = Some(value("--place")?),
             "--forget" => forget = true,
             "--json" => json = true,
+            "--form" => {
+                let v = value("--form")?;
+                form = Form::parse(&v)
+                    .ok_or_else(|| format!("--form is span, offset or combined, not `{v}`"))?;
+            }
+            "--precision" => {
+                let v = value("--precision")?;
+                precision = Some(
+                    Precision::parse(&v)
+                        .ok_or_else(|| format!("--precision is low, medium or high, not `{v}`"))?,
+                );
+            }
             f if f.starts_with('-') && f.len() > 1 && f.parse::<f64>().is_err() => {
                 return Err(format!("unknown flag {f}; see bz --help"));
             }
@@ -147,7 +180,11 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
     // Bare `bz`, flags or not, is the reading for now.
     let verb = positional.next().unwrap_or_else(|| "now".to_string());
     let operands: Vec<String> = positional.collect();
-    let limit = if verb == "place" { 3 } else { 1 };
+    let limit = match verb.as_str() {
+        "place" => 3,
+        "between" => 2,
+        _ => 1,
+    };
     if operands.len() > limit {
         return Err(format!(
             "unexpected argument `{}`; see bz --help",
@@ -177,6 +214,8 @@ fn parse(args: &[String]) -> Result<Invocation, String> {
         lat,
         lon,
         json,
+        form,
+        precision,
     })
 }
 
@@ -214,11 +253,19 @@ fn run(inv: Invocation) -> Result<(), String> {
             if !inv.operands.is_empty() {
                 return Err("bz now takes no operand; see bz --help".into());
             }
-            print_reading(&Reading::at(Instant::now(), inv.lat, inv.lon), inv.json);
+            print_reading(&Reading::at(Instant::now(), inv.lat, inv.lon), &inv);
         }
         "at" => {
             let t = Instant::parse_rfc3339(&operand("an instant")?)?;
-            print_reading(&Reading::at(t, inv.lat, inv.lon), inv.json);
+            print_reading(&Reading::at(t, inv.lat, inv.lon), &inv);
+        }
+        "between" => {
+            let first = Instant::parse_rfc3339(&operand("an instant")?)?;
+            let (from, to, from_now) = match inv.operands.get(1) {
+                Some(second) => (first, Instant::parse_rfc3339(second)?, false),
+                None => (Instant::now(), first, true),
+            };
+            print_between(from, to, from_now, &inv);
         }
         "day" => {
             let date = Date::parse(&operand("a date")?)?;
@@ -261,16 +308,22 @@ fn run(inv: Invocation) -> Result<(), String> {
     Ok(())
 }
 
-fn print_reading(r: &Reading, json: bool) {
-    if json {
+fn print_reading(r: &Reading, inv: &Invocation) {
+    if inv.json {
         println!("{}", reading_json(r));
         return;
     }
     let day = &r.day;
-    println!("{}", r.timestamp());
-    match r.quarter() {
-        Some(q) => println!("{:<10}{}", "quarter", q.name()),
-        None => println!("{:<10}{}", "polar", r.polar().map_or("", |p| p.name())),
+    println!("{}", r.timestamp_as(inv.form, inv.precision));
+    match (r.quarter(), r.eighth(), r.polar()) {
+        (Some(quarter), Some(eighth), _) => {
+            println!("{:<10}{}", "quarter", quarter.name());
+            if eighth.name() != quarter.name() {
+                println!("{:<10}{}", "eighth", eighth.name());
+            }
+        }
+        (_, _, Some(polar)) => println!("{}", polar.label()),
+        _ => {}
     }
     if let Some(phase) = r.night_phase {
         println!("{:<10}{}", "phase", phase.name());
@@ -279,10 +332,50 @@ fn print_reading(r: &Reading, json: bool) {
         println!("{:<10}{:.0} s", "span", span_s);
     }
     println!("{:<10}{}", "○ start", day.midnight_start.rfc3339());
-    println!("{:<10}{}", "sunrise", opt(day.sunrise()));
+    println!("{:<10}{}", "△", opt(day.sunrise()));
     println!("{:<10}{}", "☉", day.noon.rfc3339());
-    println!("{:<10}{}", "sunset", opt(day.sunset()));
+    println!("{:<10}{}", "▽", opt(day.sunset()));
     println!("{:<10}{}", "○ end", day.midnight_end.rfc3339());
+}
+
+fn print_between(from: Instant, to: Instant, from_now: bool, inv: &Invocation) {
+    let d = SolarDuration::between(from, to, inv.lat, inv.lon);
+    if inv.json {
+        let fields = vec![
+            ("from", quoted(&from.rfc3339_millis())),
+            ("to", quoted(&to.rfc3339_millis())),
+            ("lat", inv.lat.to_string()),
+            ("lon", inv.lon.to_string()),
+            ("seconds", format!("{:.3}", d.seconds)),
+            (
+                "spans",
+                d.spans.map_or("null".into(), |s| format!("{s:.4}")),
+            ),
+        ];
+        println!("{}", object(&fields));
+        return;
+    }
+    let (spans, ks) = if from_now {
+        (
+            d.spans_relative(inv.precision),
+            d.ks_relative(inv.precision),
+        )
+    } else {
+        (d.spans_text(inv.precision), d.ks_text(inv.precision))
+    };
+    println!(
+        "{} to {} | {}, {}",
+        from.rfc3339(),
+        to.rfc3339(),
+        inv.lat,
+        inv.lon
+    );
+    println!(
+        "{:<10}{}",
+        "spans",
+        spans.unwrap_or_else(|| "none: a day between has no sunrise or sunset".into())
+    );
+    println!("{:<10}{}", "ks", ks);
 }
 
 fn print_day(day: &SolarDay, lat: f64, lon: f64, json: bool) {
@@ -296,16 +389,16 @@ fn print_day(day: &SolarDay, lat: f64, lon: f64, json: bool) {
         .map(|h| day.sunset().expect("a day with a half night has a sunset") + h);
     let half_day = day.half_day_s().map(|h| h / 2.0);
     let rows = [
-        ("○ start", Some(day.midnight_start), "Aftermid"),
+        ("○ start", Some(day.midnight_start), "Night | Aftermid"),
         ("○ 50", morning_half_night, "Forerise"),
         ("astronomical dawn", day.before_noon(day.astronomical), ""),
         ("nautical dawn", day.before_noon(day.nautical), ""),
         ("civil dawn", day.before_noon(day.civil), ""),
-        ("sunrise", day.sunrise(), "Afterrise"),
+        ("△", day.sunrise(), "Morning | Afterrise"),
         ("50 ☉", half_day.map(|h| day.noon - h), "Forenoon"),
         ("☉", Some(day.noon), "Afternoon"),
         ("☉ 50", half_day.map(|h| day.noon + h), "Foreset"),
-        ("sunset", day.sunset(), "Afterset"),
+        ("▽", day.sunset(), "Evening | Afterset"),
         ("civil dusk", day.after_noon(day.civil), ""),
         ("nautical dusk", day.after_noon(day.nautical), ""),
         ("astronomical dusk", day.after_noon(day.astronomical), ""),
@@ -325,9 +418,13 @@ fn print_day(day: &SolarDay, lat: f64, lon: f64, json: bool) {
 
     println!("{} | {}, {}", day.date, lat, lon);
     if let Some(polar) = day.polar() {
-        println!("{:<20}{}", "polar", polar.name());
+        println!("{}", polar.label());
     }
     for (label, at, begins) in timed {
+        let begins = match (day.polar(), begins) {
+            (Some(_), "next day") | (None, _) => begins,
+            (Some(_), _) => "",
+        };
         let line = format!("{label:<20}{:<22}{begins}", at.rfc3339());
         println!("{}", line.trim_end());
     }
@@ -401,7 +498,7 @@ fn opt(t: Option<Instant>) -> String {
 }
 
 /// The reading as JSON in the shape of a vector's `expected` object, plus
-/// `span_s` and `night_phase`.
+/// `span_s`, `quarter` and `night_phase`.
 fn reading_json(r: &Reading) -> String {
     let day = &r.day;
     let mut fields: Vec<(&str, String)> = vec![
@@ -446,6 +543,10 @@ fn reading_json(r: &Reading) -> String {
     fields.push((
         "quarter",
         r.quarter().map_or("null".into(), |q| quoted(q.name())),
+    ));
+    fields.push((
+        "eighth",
+        r.eighth().map_or("null".into(), |q| quoted(q.name())),
     ));
     fields.push((
         "written",

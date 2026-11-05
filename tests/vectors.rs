@@ -50,7 +50,7 @@ fn every_vector_passes() {
         if let Some(polar) = e["polar"].as_str() {
             assert_eq!(r.polar().map(|p| p.name()), Some(polar), "{name}: polar");
             assert!(
-                r.span().is_none() && r.quarter().is_none(),
+                r.span().is_none() && r.eighth().is_none(),
                 "{name}: polar has no span"
             );
             continue;
@@ -86,7 +86,7 @@ fn every_vector_passes() {
             e["display_span"].as_i64().unwrap(),
             "{name}: display_span"
         );
-        assert_eq!(r.quarter().unwrap().name(), e["quarter"], "{name}: quarter");
+        assert_eq!(r.eighth().unwrap().name(), e["eighth"], "{name}: eighth");
         assert_eq!(r.combined_form().unwrap(), e["written"], "{name}: written");
         assert_eq!(
             r.span_form().unwrap(),

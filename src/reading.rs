@@ -48,7 +48,7 @@ impl Anchor {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Quarter {
+pub enum Eighth {
     Afterrise,
     Forenoon,
     Afternoon,
@@ -59,39 +59,67 @@ pub enum Quarter {
     Forerise,
 }
 
-impl Quarter {
+impl Eighth {
     pub fn name(self) -> &'static str {
         match self {
-            Quarter::Afterrise => "Afterrise",
-            Quarter::Forenoon => "Forenoon",
-            Quarter::Afternoon => "Afternoon",
-            Quarter::Foreset => "Foreset",
-            Quarter::Afterset => "Afterset",
-            Quarter::Foremid => "Foremid",
-            Quarter::Aftermid => "Aftermid",
-            Quarter::Forerise => "Forerise",
+            Eighth::Afterrise => "Afterrise",
+            Eighth::Forenoon => "Forenoon",
+            Eighth::Afternoon => "Afternoon",
+            Eighth::Foreset => "Foreset",
+            Eighth::Afterset => "Afterset",
+            Eighth::Foremid => "Foremid",
+            Eighth::Aftermid => "Aftermid",
+            Eighth::Forerise => "Forerise",
         }
     }
 
-    /// The quarter holding a signed span on an arc: start inclusive, end
+    /// The eighth holding a signed span on an arc: start inclusive, end
     /// exclusive, so exactly the anchor is Afternoon or Aftermid (§3.6).
-    pub fn of(anchor: Anchor, span: f64) -> Quarter {
+    pub fn of(anchor: Anchor, span: f64) -> Eighth {
         let index = ((span + 100.0) / 50.0).floor().clamp(0.0, 3.0) as usize;
-        let quarters = match anchor {
+        let eighths = match anchor {
             Anchor::Noon => [
-                Quarter::Afterrise,
-                Quarter::Forenoon,
-                Quarter::Afternoon,
-                Quarter::Foreset,
+                Eighth::Afterrise,
+                Eighth::Forenoon,
+                Eighth::Afternoon,
+                Eighth::Foreset,
             ],
             Anchor::Midnight => [
-                Quarter::Afterset,
-                Quarter::Foremid,
-                Quarter::Aftermid,
-                Quarter::Forerise,
+                Eighth::Afterset,
+                Eighth::Foremid,
+                Eighth::Aftermid,
+                Eighth::Forerise,
             ],
         };
-        quarters[index]
+        eighths[index]
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Quarter {
+    Morning,
+    Afternoon,
+    Evening,
+    Night,
+}
+
+impl Quarter {
+    pub fn name(self) -> &'static str {
+        match self {
+            Quarter::Morning => "Morning",
+            Quarter::Afternoon => "Afternoon",
+            Quarter::Evening => "Evening",
+            Quarter::Night => "Night",
+        }
+    }
+
+    pub fn of(anchor: Anchor, span: f64) -> Quarter {
+        match (anchor, span < 0.0) {
+            (Anchor::Noon, true) => Quarter::Morning,
+            (Anchor::Noon, false) => Quarter::Afternoon,
+            (Anchor::Midnight, true) => Quarter::Evening,
+            (Anchor::Midnight, false) => Quarter::Night,
+        }
     }
 }
 
@@ -109,6 +137,66 @@ impl Polar {
         match self {
             Polar::AlwaysAbove => "always_above",
             Polar::AlwaysBelow => "always_below",
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Polar::AlwaysAbove => "polar day",
+            Polar::AlwaysBelow => "polar night",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Precision {
+    Low,
+    Medium,
+    High,
+}
+
+impl Precision {
+    pub fn parse(s: &str) -> Option<Precision> {
+        match s {
+            "low" => Some(Precision::Low),
+            "medium" => Some(Precision::Medium),
+            "high" => Some(Precision::High),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Resolution {
+    span: u32,
+    ks: u32,
+}
+
+impl Resolution {
+    fn of(precision: Option<Precision>) -> Resolution {
+        match precision {
+            None => Resolution { span: 0, ks: 2 },
+            Some(Precision::Low) => Resolution { span: 0, ks: 1 },
+            Some(Precision::Medium) => Resolution { span: 1, ks: 2 },
+            Some(Precision::High) => Resolution { span: 2, ks: 3 },
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Form {
+    Span,
+    Offset,
+    Combined,
+}
+
+impl Form {
+    pub fn parse(s: &str) -> Option<Form> {
+        match s {
+            "span" => Some(Form::Span),
+            "offset" => Some(Form::Offset),
+            "combined" => Some(Form::Combined),
+            _ => None,
         }
     }
 }
@@ -287,6 +375,67 @@ impl SolarDuration {
     pub fn display_ks_steps(&self) -> i64 {
         (self.seconds / 100.0).floor() as i64
     }
+
+    pub fn spans_text(&self, precision: Option<Precision>) -> Option<String> {
+        let d = Resolution::of(precision).span;
+        self.spans
+            .map(|s| spans_unit(&decimal(floor_steps(s.abs(), d), d)))
+    }
+
+    pub fn ks_text(&self, precision: Option<Precision>) -> String {
+        let d = Resolution::of(precision).ks;
+        format!(
+            "{} ks",
+            decimal(floor_steps(self.seconds.abs() / 1000.0, d), d)
+        )
+    }
+
+    pub fn spans_relative(&self, precision: Option<Precision>) -> Option<String> {
+        let d = Resolution::of(precision).span;
+        self.spans
+            .map(|s| relative(floor_steps(-s, d), d, spans_unit))
+    }
+
+    pub fn ks_relative(&self, precision: Option<Precision>) -> String {
+        let d = Resolution::of(precision).ks;
+        relative(floor_steps(-self.seconds / 1000.0, d), d, |n| {
+            format!("{n} ks")
+        })
+    }
+}
+
+fn floor_steps(value: f64, decimals: u32) -> i64 {
+    (value * 10f64.powi(decimals as i32)).floor() as i64
+}
+
+fn decimal(steps: i64, decimals: u32) -> String {
+    if decimals == 0 {
+        return steps.to_string();
+    }
+    let unit = 10i64.pow(decimals);
+    format!(
+        "{}.{:0width$}",
+        steps / unit,
+        steps % unit,
+        width = decimals as usize
+    )
+}
+
+fn spans_unit(n: &str) -> String {
+    if n == "1" {
+        "1 span".to_string()
+    } else {
+        format!("{n} spans")
+    }
+}
+
+fn relative(steps: i64, decimals: u32, unit: impl Fn(&str) -> String) -> String {
+    let amount = unit(&decimal(steps.abs(), decimals));
+    if steps < 0 {
+        format!("in {amount}")
+    } else {
+        format!("{amount} ago")
+    }
 }
 
 /// Where the instant sits on its arc, or why it has no arc position.
@@ -297,7 +446,7 @@ pub enum Position {
         span: f64,
         /// Seconds in one span of this half-arc.
         span_s: f64,
-        quarter: Quarter,
+        eighth: Eighth,
     },
     Polar(Polar),
 }
@@ -326,7 +475,7 @@ impl Reading {
                     let position = Position::OnArc {
                         span,
                         span_s: half_day / 100.0,
-                        quarter: Quarter::of(Anchor::Noon, span),
+                        eighth: Eighth::of(Anchor::Noon, span),
                     };
                     (Anchor::Noon, t - day.noon, position)
                 } else {
@@ -339,7 +488,7 @@ impl Reading {
                     let position = Position::OnArc {
                         span,
                         span_s: half_night / 100.0,
-                        quarter: Quarter::of(Anchor::Midnight, span),
+                        eighth: Eighth::of(Anchor::Midnight, span),
                     };
                     (Anchor::Midnight, t - midnight, position)
                 }
@@ -387,11 +536,15 @@ impl Reading {
         }
     }
 
-    pub fn quarter(&self) -> Option<Quarter> {
+    pub fn eighth(&self) -> Option<Eighth> {
         match self.position {
-            Position::OnArc { quarter, .. } => Some(quarter),
+            Position::OnArc { eighth, .. } => Some(eighth),
             Position::Polar(_) => None,
         }
+    }
+
+    pub fn quarter(&self) -> Option<Quarter> {
+        self.span().map(|span| Quarter::of(self.anchor, span))
     }
 
     pub fn polar(&self) -> Option<Polar> {
@@ -426,44 +579,58 @@ impl Reading {
     /// `59 ☉`, `☉`, `☉ 3`, and `△` or `▽` for the first span after sunrise
     /// or sunset (§3.2); None on a polar day.
     pub fn span_form(&self) -> Option<String> {
-        let g = self.anchor.glyph();
-        self.display_span().map(|span| match span {
-            -100 => self.anchor.horizon_glyph().to_string(),
-            s if s < 0 => format!("{}{SEP}{g}", -s),
-            0 => g.to_string(),
-            s => format!("{g}{SEP}{s}"),
-        })
+        self.form(Form::Span, None)
     }
 
     /// `11.77 ks ☉`, `☉`, `☉ 0.70 ks`.
     pub fn offset_form(&self) -> String {
-        let g = self.anchor.glyph();
-        match self.display_offset_steps() {
-            s if s < 0 => format!("{}{SEP}{g}", ks(-s)),
-            0 => g.to_string(),
-            s => format!("{g}{SEP}{}", ks(s)),
-        }
+        self.form(Form::Offset, None)
+            .expect("every reading has an offset")
     }
 
     /// `59 [11.77 ks] ☉`, `☉`, `☉ 3 [0.70 ks]` (§3.7); None on a polar day.
     pub fn combined_form(&self) -> Option<String> {
+        self.form(Form::Combined, None)
+    }
+
+    pub fn form(&self, form: Form, precision: Option<Precision>) -> Option<String> {
         let g = self.anchor.glyph();
-        let steps = self.display_offset_steps();
-        self.display_span().map(|span| {
-            if span < 0 {
-                format!("{}{SEP}[{}]{SEP}{g}", -span, ks(-steps))
-            } else if span == 0 && steps == 0 {
-                g.to_string()
-            } else {
-                format!("{g}{SEP}{span}{SEP}[{}]", ks(steps))
+        let r = Resolution::of(precision);
+        let offset = floor_steps(self.offset_s / 1000.0, r.ks);
+        let ks = |steps: i64| format!("{} ks", decimal(steps.abs(), r.ks));
+        if form == Form::Offset {
+            return Some(match offset {
+                s if s < 0 => format!("{}{SEP}{g}", ks(s)),
+                0 => g.to_string(),
+                s => format!("{g}{SEP}{}", ks(s)),
+            });
+        }
+        let span = floor_steps(self.span()?, r.span);
+        let spans = |steps: i64| decimal(steps.abs(), r.span);
+        Some(match form {
+            Form::Span if span == -100 * 10i64.pow(r.span) => {
+                self.anchor.horizon_glyph().to_string()
             }
+            Form::Span if span < 0 => format!("{}{SEP}{g}", spans(span)),
+            Form::Span if span == 0 => g.to_string(),
+            Form::Span => format!("{g}{SEP}{}", spans(span)),
+            _ if span < 0 => format!("{}{SEP}[{}]{SEP}{g}", spans(span), ks(offset)),
+            _ if span == 0 && offset == 0 => g.to_string(),
+            _ => format!("{g}{SEP}{}{SEP}[{}]", spans(span), ks(offset)),
         })
     }
 
     /// The full timestamp (§5.3): date, coordinates and position. A polar day
     /// carries the offset form in place of the combined form.
     pub fn timestamp(&self) -> String {
-        let position = self.combined_form().unwrap_or_else(|| self.offset_form());
+        self.timestamp_as(Form::Combined, None)
+    }
+
+    pub fn timestamp_as(&self, form: Form, precision: Option<Precision>) -> String {
+        let position = self
+            .form(form, precision)
+            .or_else(|| self.form(Form::Offset, precision))
+            .expect("every reading has an offset");
         format!(
             "{} | {}, {} | {}",
             self.day.date, self.lat, self.lon, position
@@ -476,9 +643,4 @@ impl Reading {
 /// subtraction from showing 101 at exact sunrise.
 fn arc_span(offset_s: f64, half_arc_s: f64) -> f64 {
     (100.0 * offset_s / half_arc_s).clamp(-100.0, 100.0)
-}
-
-/// Hundredths of a kilosecond as `11.77 ks`.
-fn ks(steps: i64) -> String {
-    format!("{}.{:02} ks", steps / 100, steps % 100)
 }

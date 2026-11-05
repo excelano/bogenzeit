@@ -25,5 +25,5 @@ A port reproduces the reference step for step, including the declination being t
 UTC hour and minute with the seconds dropped; a port that is "more accurate" fails the vectors.
 Displayed spans and kiloseconds are the floor of the signed value, so an anchor or event shows only
 once it has been reached. Position replaces sign: number left of the glyph is before, right is after,
-no `+` or `−`. The Bogenzeit date changes at solar midnight. Quarter boundaries are start inclusive.
+no `+` or `−`. The Bogenzeit date changes at solar midnight. Eighth boundaries are start inclusive.
 The engine depends on nothing and runs offline. Don't commit, push or publish unless David asks.
