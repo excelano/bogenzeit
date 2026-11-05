@@ -4,7 +4,7 @@ You are picking up a design that is finished on paper. Your job is to build it. 
 
 ## What this is
 
-- **Bogenzeit (BZ)** — a personal time standard. Time is read as position on the Sun's arc, not as hours and minutes. Anchors: solar noon (☉) and solar midnight (○). Units: **spans** (100 per half-arc, proportional, length varies with season) and **kiloseconds** (fixed). Eight named quarters. Linked to UTC; computed from UTC instant + GPS coordinates.
+- **Bogenzeit (BZ)** — a personal time standard. Time is read as position on the Sun's arc, not as hours and minutes. Anchors: solar noon (☉) and solar midnight (○). Units: **spans** (100 per half-arc, proportional, length varies with season) and **kiloseconds** (fixed). Four quarters (Morning, Afternoon, Evening, Night), each split into two named eighths. Linked to UTC; computed from UTC instant + GPS coordinates.
 - **Tagbogen** — the watch face / app family that displays Bogenzeit. Several dial variants; tap to see civil time.
 
 ## Read in this order
@@ -20,11 +20,11 @@ You are picking up a design that is finished on paper. Your job is to build it. 
 - **Rounding:** displayed spans and ks are the **floor of the signed value** (toward the past). 59.3 spans before ☉ shows `60 ☉`. `☉` appears only from exact solar noon; sunset only at exact sunset. (BZ §5.2)
 - **Notation:** position replaces sign. Number left of glyph = before, right = after: `18 [3.43 ks] ☉`, `☉ 3 [0.70 ks]`. No `+`/`−`, no middle dot, no `~`. (BZ §3.2, §3.7)
 - **Date switchover at solar midnight (○)**, not civil midnight. Day includes its starting ○, excludes its ending ○. (BZ §5.1)
-- **Quarter boundaries:** start inclusive, end exclusive; exactly ☉ is Afternoon. Boundaries have no names. (BZ §3.6)
+- **Quarter and eighth boundaries:** start inclusive, end exclusive; exactly ☉ is Afternoon. Eighth boundaries have no names. (BZ §3.6)
 - **Glyphs ☉ and ○ are drawn as vector shapes from one shared circle definition**, never rendered from a font: no font draws them at matching sizes. (BZ §3.1)
 - **No hours or minutes** anywhere in the Bogenzeit view. Civil time appears only in the tapped civil view.
 - **Elevation and terrain are ignored.** Sea-level horizon, −0.833°. (BZ §5.4)
-- **Polar day/night:** spans and quarters are undefined; show ks offsets only. (BZ §3.5)
+- **Polar day/night:** spans, quarters and eighths are undefined; show ks offsets only. (BZ §3.5)
 - **Offline:** all computation on the watch. No network.
 - **Location:** recompute when moved > 10 km, and at least once per solar day. (BZ §5.5)
 
@@ -48,9 +48,9 @@ Engine ports are small (a few hundred lines). Recommended: implement natively in
 
 ## Phases
 
-1. **Engine + CLI.** Rust `bz` crate and `bz` CLI (`bz now --lat --lon`, `bz at <utc> --lat --lon`, `bz day <date>` table of events/quarters). Passes all vectors. Add vectors for edge cases you find (leap years, date-line longitudes, southern hemisphere, polar transitions).
-2. **Apple Watch app.** Swift engine port (passes vectors). App with dial variants 1 (fixed-time) and 2 (span), tap for civil view, onboarding explainer (topics in Tagbogen spec §5). Widgets/complications: at least span readout, quarter name, and a small arc gauge.
-3. **Wear OS.** Kotlin engine port (passes vectors). Complication data sources exposing span, ks offset, quarter, anchor, Tagbogen/Nachtbogen lengths. WFF face(s) reproducing variants 1 and 2 as closely as WFF allows.
+1. **Engine + CLI.** Rust `bz` crate and `bz` CLI (`bz now --lat --lon`, `bz at <utc> --lat --lon`, `bz day <date>` table of events/eighths). Passes all vectors. Add vectors for edge cases you find (leap years, date-line longitudes, southern hemisphere, polar transitions).
+2. **Apple Watch app.** Swift engine port (passes vectors). App with dial variants 1 (fixed-time) and 2 (span), tap for civil view, onboarding explainer (topics in Tagbogen spec §5). Widgets/complications: at least span readout, eighth name, and a small arc gauge.
+3. **Wear OS.** Kotlin engine port (passes vectors). Complication data sources exposing span, ks offset, eighth, anchor, Tagbogen/Nachtbogen lengths. WFF face(s) reproducing variants 1 and 2 as closely as WFF allows.
 
 David decides the order of phases 2 and 3; ask before starting either.
 
