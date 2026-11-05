@@ -205,6 +205,38 @@ def duration(t0: datetime, t1: datetime, lat: float, lon: float) -> dict:
     return out
 
 
+def instant_at(d: date, place: float, lat: float, lon: float):
+    """The instant at a place in Bogenzeit day d, 0 to 400 spans from its starting ○
+    (BZ spec §3.8, §5.3), inverting place_in_day; None on a polar day."""
+    today = day_events(d, lat, lon)
+    h = today["half_day_s"]
+    if not isinstance(h, float):
+        return None
+    if place < 100:
+        mid = solar_midnight(d - timedelta(days=1), lon)
+        return mid + (today["sunrise"] - mid) * (place / 100)
+    if place <= 300:
+        return today["noon"] + timedelta(seconds=h * (place - 200) / 100)
+    mid = solar_midnight(d, lon)
+    return mid - (mid - today["sunset"]) * ((400 - place) / 100)
+
+
+def after_spans(t: datetime, spans: float, lat: float, lon: float):
+    """The instant the clock reaches `spans` span steps after t, negative for before
+    (BZ spec §3.8); None when a Bogenzeit day from t's to the end has no sunrise or sunset."""
+    p = position(t, lat, lon)
+    if p["span"] is None:
+        return None
+    place = place_in_day(p) + spans
+    days = math.floor(place / 400)
+    d = p["date"] + timedelta(days=days)
+    first, last = min(p["date"], d), max(p["date"], d)
+    for i in range((last - first).days + 1):
+        if not isinstance(day_events(first + timedelta(days=i), lat, lon)["half_day_s"], float):
+            return None
+    return instant_at(d, place - 400 * days, lat, lon)
+
+
 def span_form(span: int, anchor: str) -> str:
     """Span form (BZ spec §3.2, §3.7): 100 before its anchor is the horizon glyph,
     △ after sunrise, ▽ after sunset; 0 is the anchor alone."""
@@ -268,6 +300,38 @@ DURATIONS = [
     ("Longyearbyen, 16 to 17 Feb 2027, from polar night into the first sunrise: no spans", "2027-02-16T11:00:00Z", "2027-02-17T11:00:00Z", 78.22, 15.63),
 ]
 
+INSTANTS = [
+    ("Houston, 1 Nov 2026, the starting ○", "2026-11-01", 0, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, ○ 50", "2026-11-01", 50, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, sunrise (△)", "2026-11-01", 100, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, 18 ☉", "2026-11-01", 182, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, ☉", "2026-11-01", 200, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, ☉ 30.25", "2026-11-01", 230.25, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, sunset (▽)", "2026-11-01", 300, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, 40 ○", "2026-11-01", 360, 29.76, -95.37),
+    ("Berlin, 21 Dec 2026, ☉ 50, winter", "2026-12-21", 250, 52.52, 13.40),
+    ("Sydney, 21 Dec 2026, 10 ○, southern summer", "2026-12-21", 390, -33.87, 151.21),
+    ("Date line, 180°W, 31 Dec 2026, ○ 10", "2026-12-31", 10, 0.0, -180.0),
+    ("Tromsø, 21 Jun 2027, polar day: no places", "2027-06-21", 200, 69.65, 18.96),
+]
+
+ADVANCES = [
+    ("Houston, 1 Nov 2026, 20 spans from ☉", "2026-11-01T18:05:06Z", 20, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, 20 spans from about 10 spans before sunset, across ▽", "2026-11-01T23:02:30Z", 20, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, 20 spans from 11:08 CST, across ☉", "2026-11-01T17:08:00Z", 20, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, 150 spans from 21:00 CST, across ○ and △", "2026-11-02T03:00:00Z", 150, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, 400 spans from 11:08 CST, one Bogenzeit day", "2026-11-01T17:08:00Z", 400, 29.76, -95.37),
+    ("Houston, 1 Nov 2026, 12.5 spans before 11:08 CST", "2026-11-01T17:08:00Z", -12.5, 29.76, -95.37),
+    ("Berlin, 21 Dec 2026, 0.01 spans from 14:00 CET", "2026-12-21T13:00:00Z", 0.01, 52.52, 13.40),
+    ("Tromsø, 21 Jun 2027, polar day: no spans", "2027-06-21T12:00:00Z", 10, 69.65, 18.96),
+    ("Longyearbyen, 16 Feb 2027, from polar night: no spans", "2027-02-16T11:00:00Z", 400, 78.22, 15.63),
+    ("Longyearbyen, 20 Feb 2027, 1600 spans back into polar night: no spans", "2027-02-20T11:00:00Z", -1600, 78.22, 15.63),
+]
+
+
+def _utc(t):
+    return None if t is None else t.isoformat()
+
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--vectors":
@@ -281,9 +345,17 @@ def main():
             t1 = datetime.fromisoformat(ts1.replace("Z", "+00:00"))
             durs.append({"name": name, "from": ts0, "to": ts1, "lat": lat, "lon": lon,
                          "expected": duration(t0, t1, lat, lon)})
+        insts = [{"name": name, "bz_date": d, "place": place, "lat": lat, "lon": lon,
+                  "expected": {"utc": _utc(instant_at(date.fromisoformat(d), place, lat, lon))}}
+                 for name, d, place, lat, lon in INSTANTS]
+        advs = [{"name": name, "from": ts, "spans": spans, "lat": lat, "lon": lon,
+                 "expected": {"utc": _utc(after_spans(datetime.fromisoformat(ts.replace("Z", "+00:00")),
+                                                      spans, lat, lon))}}
+                for name, ts, spans, lat, lon in ADVANCES]
         print(json.dumps({"algorithm": "NOAA general solar position (fractional year)",
                           "tolerance": {"event_times_s": 1, "display_values": "exact"},
-                          "vectors": vecs, "durations": durs}, indent=2, ensure_ascii=False))
+                          "vectors": vecs, "durations": durs, "instants": insts, "advances": advs},
+                         indent=2, ensure_ascii=False))
         return
     ts, lat, lon = sys.argv[1], float(sys.argv[2]), float(sys.argv[3])
     t = datetime.fromisoformat(ts.replace("Z", "+00:00"))

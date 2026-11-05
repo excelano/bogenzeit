@@ -299,6 +299,17 @@ impl SolarDay {
         self.sunset().map(|set| self.midnight_end - set)
     }
 
+    pub fn instant_at(&self, place: f64) -> Option<Instant> {
+        let (rise, set, half_day) = (self.sunrise()?, self.sunset()?, self.half_day_s()?);
+        Some(if place < 100.0 {
+            self.midnight_start + (rise - self.midnight_start) * place / 100.0
+        } else if place <= 300.0 {
+            self.noon + half_day * (place - 200.0) / 100.0
+        } else {
+            self.midnight_end - (self.midnight_end - set) * (400.0 - place) / 100.0
+        })
+    }
+
     /// The night phase at an instant of this day, or None in daylight.
     pub fn night_phase_at(&self, t: Instant) -> Option<NightPhase> {
         let from_noon = (t - self.noon).abs();
@@ -559,6 +570,22 @@ impl Reading {
             Anchor::Midnight if span >= 0.0 => span,
             Anchor::Midnight => 400.0 + span,
         })
+    }
+
+    pub fn after_spans(&self, spans: f64) -> Option<Instant> {
+        let place = self.place_in_day()? + spans;
+        let days = (place / 400.0).floor() as i64;
+        let date = self.day.date.plus_days(days);
+        let first = self.day.date.min(date);
+        let crosses_polar = (0..=days.abs()).any(|i| {
+            SolarDay::compute(first.plus_days(i), self.lat, self.lon)
+                .polar()
+                .is_some()
+        });
+        if crosses_polar {
+            return None;
+        }
+        SolarDay::compute(date, self.lat, self.lon).instant_at(place - 400.0 * days as f64)
     }
 
     /// Whole spans, floored toward the past (§5.2).
