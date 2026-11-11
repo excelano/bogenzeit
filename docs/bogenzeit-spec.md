@@ -1,12 +1,10 @@
-# Bogenzeit — Spec (draft 0.14)
+# Bogenzeit — Spec
 
 Bogenzeit is a personal way to see and think about time, centered on the local Sun.
 It connects to UTC and civil time zones, but the primary readout follows
 solar noon, sunrise, and sunset at the observer's location.
 
-Status: draft 0.14. First lives as this file; the **Tagbogen** watch face comes next.
-
-**Bogenzeit** ("arc time", abbreviated **BZ**) is the time standard: time read as position on the Sun's arc, not as a count of hours. **Tagbogen** is the watch face that displays it.
+**Bogenzeit** ("arc time", abbreviated **BZ**) is the time standard: time read as position on the Sun's arc, not as a count of hours. **Bogentag** is the Apple Watch and iPhone app that displays it, specified in its own repository, https://github.com/excelano/bogentag.
 
 ---
 
@@ -51,17 +49,14 @@ Status: draft 0.14. First lives as this file; the **Tagbogen** watch face comes 
 
 | Term | Definition |
 |---|---|
-| **Bogenzeit (BZ)** *(coined)* | This time standard: spans, ks offsets, ☉/○ anchors, and positional notation, built on local apparent solar time. Name chosen over "Local Solar Time" (already means sundial time; LST also = Local Sidereal Time). |
-| **Noon offset** *(coined, working name)* | Time from today's local solar noon, in kiloseconds, two decimals (10 s resolution). Written with the ☉ glyph (§3). |
-| **Midnight offset** *(coined, working name)* | Time from local solar midnight, in kiloseconds. Written with the ○ glyph (§3). Used at night in place of the noon offset. |
-| **Span** *(coined, working name)* | Proportional unit: each half of the Tagbogen is 100 spans, and each half of the Nachtbogen is 100 spans. Span length in seconds = (that half's length in s) / 100, so it changes with season and latitude. |
-
+| **Bogenzeit (BZ)** *(coined)* | This time standard: spans, ks offsets, ☉/○ anchors, and positional notation, built on local apparent solar time. The name avoids "Local Solar Time", which already means sundial time, and LST, which also means Local Sidereal Time. The abbreviation BZ follows the German convention where Z = Zeit (cf. MEZ); BZT would be redundant ("Bogenzeit Time"), and a zone-style ...T code implies a fixed UTC offset, which BZ does not have. Code and packages use the prefix `bz`. |
+| **Noon offset** *(coined)* | Time from today's local solar noon, in kiloseconds, two decimals (10 s resolution). Written with the ☉ glyph (§3). |
+| **Midnight offset** *(coined)* | Time from local solar midnight, in kiloseconds. Written with the ○ glyph (§3). Used at night in place of the noon offset. |
+| **Span** *(coined)* | Proportional unit: each half of the Tagbogen is 100 spans, and each half of the Nachtbogen is 100 spans. Span length in seconds = (that half's length in s) / 100, so it changes with season and latitude. |
 | **Quarters** *(adopted)* | The four parts of the day — Morning, Afternoon, Evening, Night — each a half-arc of 100 spans, fixed by anchor and side. See §3.6. |
 | **Eighths** *(coined)* | Each quarter split at its 50-span midpoint. Eight named periods: Afterrise, Forenoon, Afternoon, Foreset (Tagbogen); Afterset, Foremid, Aftermid, Forerise (Nachtbogen). See §3.6. |
 
 **Naming note — "span":** no conflict as a time *unit* (no standard or historical unit of time is called a span). Overlaps to be aware of: "span" is a traditional unit of *length* (~9 in, a hand's width); in software, `Span` is an interval with a start and end (OpenTelemetry, Rust `tracing`) and `TimeSpan` is a duration type in .NET. In code, use a qualified name (e.g. `SolarSpan`) to avoid collisions.
-
-Naming of coined terms is still open.
 
 ---
 
@@ -118,7 +113,7 @@ The glyph is a fixed point on a timeline read left to right. **Position replaces
 - **Span position**, e.g. `59 ☉`. Sunrise is `△`, sunset is `▽`.
 - **Noon offset**, e.g. `11.77 ks ☉`.
 - A readout shows either reading alone, or both in the combined form (§3.7) with the span first.
-- Context: half-daylight length, e.g. `½ day 19.8 ks` (so a span is 198 s today).
+- Context: half-daylight length, e.g. `½ day 19.8 ks` (so a span is 198 s, as on the worked day in §7).
 - Civil time shown small, for coordination only.
 
 ### 3.4 Nachtbogen (sunset → sunrise)
@@ -148,7 +143,7 @@ The quarters are the coarse, spoken layer; the number places the moment within o
 
 **Eighths (coined).** Each quarter splits at its 50-span midpoint into two eighths, each named for its **nearest horizon or anchor event**, with **Fore-** (before it) or **After-** (after it). The rule matches positional notation: *Fore-* = number left of the glyph, *After-* = number right of the glyph.
 
-| Arc | Spans | Eighth | Nearest event | Today, Houston (CST, approx.) |
+| Arc | Spans | Eighth | Nearest event | Houston, 1 Nov 2026 (CST, approx.) |
 |---|---|---|---|---|
 | Tagbogen | `△` → `50 ☉` | **Afterrise** | after sunrise | 06:34 → 09:20 |
 | | `50 ☉` → `☉` | **Forenoon** | before solar noon | 09:20 → 12:05 |
@@ -164,7 +159,7 @@ The quarters are the coarse, spoken layer; the number places the moment within o
 **Roots:** *rise* = sunrise (△), *noon* = solar noon (☉), *set* = sunset (▽), *mid* = solar midnight (○). Full forms Foremidnight / Aftermidnight may be used where space allows.
 
 **Properties**
-- A quarter is 100 spans of its arc (about 19.8 ks today at Houston); an eighth is 50 spans (about 9.9 ks). Both change with season and latitude — a Tagbogen eighth runs from roughly 9 ks (December) to 12–13 ks (June) in Houston, and Nachtbogen eighths do the opposite.
+- A quarter is 100 spans of its arc (about 19.8 ks at Houston on 1 Nov 2026); an eighth is 50 spans (about 9.9 ks). Both change with season and latitude — a Tagbogen eighth runs from roughly 9 ks (December) to 12–13 ks (June) in Houston, and Nachtbogen eighths do the opposite.
 - The Tagbogen and Nachtbogen boundaries meet at sunrise and sunset, so the four quarters, and the eight eighths, cover the full apparent solar day with no gaps.
 
 **Naming notes**
@@ -245,7 +240,7 @@ Days, weeks, months, and years are unchanged Gregorian units. Only the **switcho
 - The date changes at **solar midnight (○)**, not civil midnight.
 - The Bogenzeit date of an apparent solar day = the Gregorian (civil) date on which that day's ☉ falls.
 - A day includes its starting ○ and excludes its ending ○. So Aftermid and Forerise belong to the new date; Afterset and Foremid belong to the old one.
-- Example: Houston tonight, ○ ≈ 00:05 CST. From 00:00 to 00:05 civil, the civil date is 2 Nov but the Bogenzeit date is still 1 Nov.
+- Example: Houston on the night of 1 Nov 2026, ○ ≈ 00:05 CST. From 00:00 to 00:05 civil, the civil date is 2 Nov but the Bogenzeit date is still 1 Nov.
 
 ### 5.2 Display resolution and rounding
 
@@ -291,11 +286,11 @@ Ignored. Sunrise and sunset are computed for a sea-level, flat horizon (Sun's ce
 - **Normative:** Bogenzeit is defined by the exact coordinates at each instant. It shifts continuously as you move.
 - **Implementations** may approximate by recomputing only when needed. Recommended: recompute when moved more than **10 km**, and at least once per solar day. At Houston's latitude, 10 km of east–west movement shifts ☉ by about 25 s, which is below one ks display step (100 s).
 - A timestamp (§5.3) records the coordinates actually used for that reading.
-- Coordination between people in different places is out of scope for now.
+- Coordination between people in different places is out of scope.
 
 ### 5.6 Span length reference
 
-A span's length in seconds = (half of its arc) / 100. Computed with the §6 method (NOAA approximation; accurate to about a second):
+A span's length in seconds = (half of its arc) / 100. Computed with the §6 method:
 
 | Place | Latitude | Day span | Night span |
 |---|---|---|---|
@@ -322,7 +317,7 @@ A span's length in seconds = (half of its arc) / 100. Computed with the §6 meth
 - IANA time zone (for civil display only)
 
 **Method**
-- Solar position: NOAA solar calculator algorithm (equation of time + declination). Good to about a minute at mid-latitudes. A higher-precision method (e.g. SPA) can replace it later.
+- Solar position: NOAA solar calculator algorithm (equation of time + declination). It is good to about a minute against the true Sun at mid-latitudes, which is enough for a face; every implementation reproduces it step for step, so they agree with each other to the second.
 - Solar noon (UTC) = 12:00 − 4 min × longitude° − equation of time.
 - Sunrise/sunset: hour angle at −0.833° altitude. Twilights at −6°, −12°, −18°.
 - Noon offset (s) = instant − solar noon of the current apparent solar day; display ÷ 1000, two decimals.
@@ -358,35 +353,3 @@ Why noon is at 12:05 CST:
 - Net: about +5 min.
 
 Yesterday under CDT, solar noon was about 13:05 civil. The civil clock jumped an hour; the ☉ readout did not.
-
----
-
-## 8. Open decisions
-
-1. **Final names** for "noon offset", "midnight offset" and "span".
-2. **Precision:** NOAA (~1 min) is enough for a face; is SPA-level precision wanted for anything?
-3. **Location source on the watch:** live GPS, last known fix, or saved places (home, camp). Recalculation policy is set in §5.5.
-4. **Polar case for spans:** with no sunrise/sunset, spans are undefined; fall back to ks only.
-
-**Decided**
-
-- ~~Readout~~ — decided: span form, offset form, or both combined with the span first; a display may show one alone (§3.3). The night offset is ks from solar midnight.
-- ~~Sunrise and sunset glyphs~~ — decided: △ and ▽, standing in for the 100-span position; nothing is counted from them (§3.1, §3.2).
-- ~~Anchor glyphs~~ — decided: ☉ noon, ○ midnight.
-- ~~Names~~ — decided: Bogenzeit (standard), Tagbogen (watch face).
-- ~~Quarters and eighths~~ — decided: four quarters (Morning, Afternoon, Evening, Night; adopted), each a half-arc; each split into two eighths named Fore-/After- + nearest event (§3.6).
-- ~~Names for eighth boundaries~~ — decided: none. The 50-span points are written in notation only (`50 ☉`, `☉ 50`, `50 ○`, `○ 50`). Named transitions are limited to sunrise, solar noon, sunset, solar midnight.
-- ~~Date switchover~~ — decided: at solar midnight (§5.1).
-- ~~Rounding~~ — decided: floor of the signed value at the precision shown (§5.2).
-- ~~Display precision~~ — decided: spans whole or to two decimals, ks to one, two or three; the written forms use whole spans and two decimals of ks (§5.2).
-- ~~Full timestamp~~ — decided: Gregorian date + coordinates + position (§5.3).
-- ~~Elevation/terrain~~ — decided: ignored (§5.4).
-- ~~Written forms~~ — decided: span, offset, and combined `59 [11.8 ks] ☉`; `|` between fields (§3.7).
-- ~~Abbreviation~~ — decided: BZ, following the German convention where Z = Zeit (cf. MEZ). Not BZT ("Bogenzeit Time" is redundant, and a zone-style ...T code implies a fixed UTC offset, which BZ does not have). Use `bz` as the code/package prefix.
-- ~~Sign notation~~ — decided: positional (left = before, right = after) for display; signed values for data.
-
----
-
-## 9. Next: Tagbogen watch face
-
-Not yet specified. Inputs carried forward: §3 notation and readout, §4 data forms, §5 dates/resolution/location, §6 computation (must run on-device and offline), §8 decisions.

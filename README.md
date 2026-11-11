@@ -16,17 +16,27 @@ using the NOAA solar position series that every Bogenzeit port implements step
 for step.
 
 `reference/bz_reference.py` is the prototype that defines the algorithm, and the
-only thing that writes `vectors/bz_vectors.json`. Every port, in whatever
-language, passes those vectors: event times within a second, displayed values
-exact. Add a vector by adding a case to the reference and regenerating the file,
-then carry the file to each port's repository.
+only thing that writes `vectors/bz_vectors.json`. A conforming port, in
+whatever language, passes those vectors: event times within a second, displayed
+values exact. Add a vector by adding a case to the reference and regenerating
+the file, then carry the file to each conforming port's repository.
+[bogenzeit-js](https://github.com/excelano/bogenzeit-js), for a clock on a web
+page, uses its own approximation and does not claim conformance.
 
 Bogentag, the Apple Watch and iPhone apps that show Bogenzeit, is at
 https://github.com/excelano/bogentag.
 
 ## Install and run
 
+On Debian and Ubuntu, from the Excelano apt repository:
+
+    curl -fsSL https://excelano.com/apt/setup.sh | sudo sh && sudo apt install bz
+
+Anywhere with a Rust toolchain:
+
     cargo install bz
+
+Then:
 
     bz now --lat 29.76 --lon -95.37
     bz at 2026-11-01T17:08:00Z --lat 29.76 --lon -95.37
@@ -53,3 +63,7 @@ default, `bz --place camp` for another, and `bz places` lists them. The file is
 `~/.config/bz/config`, one place per line as `name = lat, lon` with
 `place = name` for the default, and can be edited by hand. Coordinates on the
 command line still win.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
