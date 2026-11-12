@@ -483,13 +483,20 @@ fn print_places(places: &Places, json: bool) {
         );
         return;
     }
+    let width = places
+        .places
+        .iter()
+        .map(|(name, _, _)| name.chars().count() + 2)
+        .max()
+        .unwrap_or(0)
+        .max(12);
     for (name, lat, lon) in &places.places {
         let mark = if places.default.as_deref() == Some(name) {
             "  default"
         } else {
             ""
         };
-        println!("{name:<12}{lat}, {lon}{mark}");
+        println!("{name:<width$}{lat}, {lon}{mark}");
     }
 }
 
