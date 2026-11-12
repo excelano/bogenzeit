@@ -64,6 +64,17 @@ default, `bz --place camp` for another, and `bz places` lists them. The file is
 `place = name` for the default, and can be edited by hand. Coordinates on the
 command line still win.
 
+Saved places make a world clock. Save each city with `bz place`, then read them
+all at one instant, so every row is the same moment; the first line of `bz at`
+is the one-line reading:
+
+    T=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    bz places | while read -r name _; do
+      printf '%-12s %s\n' "$name" "$(bz at "$T" --place "$name" | head -1)"
+    done
+
+Saved as a script, `watch -n 10` keeps it live.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
