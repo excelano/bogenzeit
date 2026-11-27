@@ -64,14 +64,12 @@ impl HalfArc {
 }
 
 /// Seconds from solar noon to the Sun's center reaching `alt_deg`, the same
-/// on both sides of noon. The declination is evaluated at solar noon's UTC
-/// hour and minute with the seconds dropped; a port keeps that truncation so
-/// its event times agree with the vectors.
+/// on both sides of noon. The declination is evaluated at solar noon, in
+/// hours from `date`'s UTC midnight; near the date line that hour falls
+/// below 0 or above 24.
 pub fn half_arc(date: Date, lat: f64, lon: f64, alt_deg: f64) -> HalfArc {
-    let noon = solar_noon(date, lon);
-    let sod = noon.seconds_of_day();
-    let utc_hour = (sod / 3600.0).floor() + ((sod % 3600.0) / 60.0).floor() / 60.0;
-    let (_, decl) = solar_terms(date, utc_hour);
+    let hours_since_midnight = (solar_noon(date, lon) - date.midnight_utc()) / 3600.0;
+    let (_, decl) = solar_terms(date, hours_since_midnight);
     let phi = lat.to_radians();
     let x = (alt_deg.to_radians().sin() - phi.sin() * decl.sin()) / (phi.cos() * decl.cos());
     if x < -1.0 {

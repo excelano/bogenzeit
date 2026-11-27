@@ -21,8 +21,9 @@ excelano/shipping, run from this directory: `build-release`, then `ship-crates` 
 
 ## Rules
 
-A port reproduces the reference step for step, including the declination being taken at solar noon's
-UTC hour and minute with the seconds dropped; a port that is "more accurate" fails the vectors.
+A port reproduces the reference step for step, including the declination being taken at solar noon in
+hours from the civil date's UTC midnight, which near the date line falls below 0 or above 24; a port
+that is "more accurate" fails the vectors.
 Displayed spans and kiloseconds are the floor of the signed value, so an anchor or event shows only
 once it has been reached. Position replaces sign: number left of the glyph is before, right is after,
 no `+` or `−`. The Bogenzeit date changes at solar midnight. Eighth boundaries are start inclusive.

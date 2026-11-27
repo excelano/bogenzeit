@@ -58,7 +58,8 @@ def solar_noon_utc(d: date, lon: float) -> datetime:
 def half_arc_s(d: date, lat: float, lon: float, alt_deg: float):
     """Seconds from ☉ to the Sun reaching alt_deg, or None (polar: never reaches it)."""
     noon = solar_noon_utc(d, lon)
-    _, decl = _solar_terms(d, noon.hour + noon.minute / 60)
+    hours_since_midnight = (noon - datetime(d.year, d.month, d.day, tzinfo=timezone.utc)) / timedelta(hours=1)
+    _, decl = _solar_terms(d, hours_since_midnight)
     phi = math.radians(lat)
     x = (math.sin(math.radians(alt_deg)) - math.sin(phi) * math.sin(decl)) / (math.cos(phi) * math.cos(decl))
     if x < -1:
@@ -282,6 +283,8 @@ CASES = [
     ("Apia, 1 Jan 2027, 00:30 WSST (UTC+13, longitude west)", "2026-12-31T11:30:00Z", -13.83, -171.75),
     ("Date line, 180°E, 1 Jan 2027, 00:30 UTC", "2027-01-01T00:30:00Z", 0.0, 180.0),
     ("Date line, 180°W, 1 Jan 2027, 00:30 UTC (same instant, BZ date 31 Dec)", "2027-01-01T00:30:00Z", 0.0, -180.0),
+    ("Suva, 1 Oct 2026, 10:00 FJT (solar noon on UTC date 30 Sep)", "2026-09-30T22:00:00Z", -18.14, 178.44),
+    ("Chatham Islands, BZ date 22 Feb 2026, 10:45 CHADT 23 Feb (solar noon on UTC date 23 Feb)", "2026-02-22T21:00:00Z", -43.95, -176.55),
     ("Berlin, 29 Feb 2028, 12:00 CET (leap day)", "2028-02-29T11:00:00Z", 52.52, 13.40),
     ("Tromsø, 21 Dec 2026, 12:00 CET (polar night, noon anchor)", "2026-12-21T11:00:00Z", 69.65, 18.96),
     ("Tromsø, 21 Dec 2026, 01:00 CET (polar night, midnight anchor)", "2026-12-21T00:00:00Z", 69.65, 18.96),
